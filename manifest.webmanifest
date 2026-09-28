@@ -1,0 +1,17 @@
+{
+  "name": "21點策略 & 算牌訓練",
+  "short_name": "21點訓練",
+  "description": "Blackjack strategy, card-counting trainer and simulator",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#153029",
+  "theme_color": "#153029",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

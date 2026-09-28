@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>21點策略 & 算牌下注模擬器</title>
+<meta name="theme-color" content="#153029">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="21點訓練">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+
+<style>
+:root{
+  --felt:#153029; --felt-2:#1d3f36; --card:#f1e8d6; --ink:#16211c;
+  --gold:#c9a227; --line:#2b5240; --loss:#b3503f; --win:#4c8f6b; --muted:#a9c2b6;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--felt);color:var(--card);font-family:'IBM Plex Mono',monospace;
+  background-image:radial-gradient(ellipse at top,var(--felt-2),var(--felt) 70%);min-height:100vh}
+h1,h2,h3{font-family:'Fraunces',serif;font-weight:700;margin:0 0 4px}
+.wrap{max-width:920px;margin:0 auto;padding:28px 16px 60px}
+header{margin-bottom:22px;border-bottom:1px solid var(--line);padding-bottom:16px}
+header h1{font-size:1.6rem;color:var(--card)}
+header p{margin:6px 0 0;color:var(--muted);font-size:.85rem;line-height:1.5}
+.card{background:rgba(241,232,214,.04);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.card h2{font-size:1.05rem;color:var(--gold);margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+label{display:block;font-size:.72rem;color:var(--muted);margin-bottom:4px}
+input[type=number]{width:100%;background:var(--card);color:var(--ink);border:none;border-radius:5px;
+  padding:7px 8px;font-family:inherit;font-size:.85rem}
+select.rulesel{width:100%;background:var(--card);color:var(--ink);border:none;border-radius:5px;
+  padding:7px 8px;font-family:inherit;font-size:.8rem;height:auto;text-align:left;text-align-last:left}
+.tablewrap{overflow-x:auto;border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:.68rem;min-width:560px}
+th,td{padding:0;text-align:center;border:1px solid var(--line)}
+th{background:var(--felt-2);color:var(--gold);padding:5px 2px;font-weight:600}
+td.rowlabel{background:var(--felt-2);color:var(--muted);padding:5px 4px;font-weight:600}
+select{width:100%;height:26px;background:transparent;color:var(--card);border:none;font-family:inherit;
+  font-size:.68rem;text-align:center;text-align-last:center;cursor:pointer}
+select.H{color:var(--muted)} select.S{color:var(--win)} select.D{color:var(--gold)} select.P{color:#e0b0e6}
+.tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tab{padding:6px 12px;border:1px solid var(--line);border-radius:20px;background:transparent;color:var(--muted);
+  font-family:inherit;font-size:.75rem;cursor:pointer}
+.tab.active{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.tablepanel{display:none}
+.tablepanel.active{display:block}
+.spread{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+.spreadcol{flex:0 0 46px;text-align:center}
+.spreadcol label{font-size:.65rem;color:var(--muted)}
+.spreadcol input{padding:6px 2px;text-align:center;width:100%}
+button.run{width:100%;padding:14px;background:var(--gold);color:var(--ink);border:none;border-radius:8px;
+  font-family:'Fraunces',serif;font-weight:700;font-size:1rem;cursor:pointer;letter-spacing:.02em}
+button.run:active{transform:translateY(1px)}
+button.run:disabled{opacity:.5}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:14px}
+.stat{background:rgba(0,0,0,.18);border-radius:8px;padding:10px 12px}
+.stat .v{font-size:1.15rem;font-weight:600}
+.stat .l{font-size:.65rem;color:var(--muted);margin-top:2px}
+.pos{color:var(--win)} .neg{color:var(--loss)}
+canvas{width:100%;height:180px;display:block;margin-top:14px;border-radius:6px;background:rgba(0,0,0,.15)}
+.note{font-size:.7rem;color:var(--muted);line-height:1.6;margin-top:8px}
+.lbl2{font-size:.72rem;color:var(--gold);margin:10px 0 6px;font-weight:600}
+.badge{display:inline-block;background:var(--felt-2);color:var(--gold);border-radius:4px;padding:1px 6px;
+  font-size:.65rem;margin-left:6px}
+.seatrow{margin-bottom:14px}
+.seatrow .lbl{font-size:.68rem;color:var(--muted);margin-bottom:6px}
+.pcard{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--card);color:var(--ink);border-radius:6px;width:38px;height:52px;margin:0 4px 4px 0;
+  font-weight:600;font-size:.9rem;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.pcard.red{color:#a4293a}
+.pcard.back{background:var(--felt-2);color:var(--gold);border:1px dashed var(--gold)}
+.hline{font-size:.72rem;color:var(--muted);margin-top:2px}
+.hline.cur{color:var(--gold)}
+.actbtn{padding:9px 16px;border-radius:7px;border:1px solid var(--gold);background:transparent;color:var(--gold);
+  font-family:inherit;font-size:.8rem;cursor:pointer}
+.actbtn:disabled{opacity:.3;cursor:default}
+.outcome{font-size:.85rem;font-weight:600;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>21點策略 & 算牌下注模擬器</h1>
+  <p>牌局規則、算牌系統全部可調，策略表可任意修改，然後模擬大量局數觀察期望值，或用「訓練模式」試玩單手練手感。</p>
+</header>
+
+<div class="card">
+  <h2>牌局設定</h2>
+  <div class="grid">
+    <div><label>副數</label><input type="number" id="decks" value="8" min="1" max="8"></div>
+    <div><label>洗牌時機（剩餘%）</label><input type="number" id="pen" value="25" min="10" max="90"></div>
+    <div><label>基本注（單位）</label><input type="number" id="unit" value="10" min="1"></div>
+    <div><label>起始本金</label><input type="number" id="bank" value="5000" min="0"></div>
+    <div><label>模擬局數（每條路徑）</label><input type="number" id="rounds" value="50000" min="100" max="2000000"></div>
+    <div><label>分佈路徑數（跑幾多次獨立模擬）</label><input type="number" id="numPaths" value="60" min="1" max="500"></div>
+  </div>
+  <div class="grid" style="margin-top:10px">
+    <div><label>莊家軟17</label><select id="soft17" class="rulesel"><option value="S17" selected>停牌 (S17)</option><option value="H17">要牌 (H17)</option></select></div>
+    <div><label>分牌後加倍 (DAS)</label><select id="das" class="rulesel"><option value="yes" selected>允許</option><option value="no">不允許</option></select></div>
+    <div><label>最多分成幾手</label><input type="number" id="maxHands" value="4" min="1" max="8"></div>
+    <div><label>天然21點賠率</label><select id="bjPayout" class="rulesel"><option value="1.5" selected>3:2</option><option value="1.2">6:5</option></select></div>
+    <div><label>投降 (Surrender)</label><select id="surrender" class="rulesel"><option value="no" selected>無</option><option value="late">Late Surrender</option></select></div>
+    <div><label>洗牌方式</label><select id="shuffleMode" class="rulesel"><option value="shoe" selected>牌靴（打到切牌位先洗）</option><option value="csm">連續洗牌機 CSM</option></select></div>
+  </div>
+  <div class="note" id="csmWarn" style="display:none;color:var(--loss)">CSM模式：每手之後牌堆重新混合，count冇意義，算牌同下注spread都唔會帶來優勢。</div>
+  <div class="note" id="bj65Warn" style="display:none;color:var(--loss)">⚠️ 6:5天然21點賠率會蠶食成1.4%嘅house edge，實戰通常被認為足以打晒算牌員嘅優勢，一般建議搵返3:2嘅枱。</div>
+</div>
+
+<div class="card">
+  <h2>策略表 <span class="badge">點擊儲存格可修改</span></h2>
+  <button class="run" id="autoStratBtn">自動演算最優策略（跟返而家嘅規則）</button>
+  <div class="note" id="autoStratNote"></div>
+  <div class="tabs">
+    <button class="tab active" data-t="hard">Hard</button>
+    <button class="tab" data-t="soft">Soft</button>
+    <button class="tab" data-t="pair">Pair</button>
+  </div>
+  <div class="tablepanel active" id="panel-hard"></div>
+  <div class="tablepanel" id="panel-soft"></div>
+  <div class="tablepanel" id="panel-pair"></div>
+  <div class="note">H=要牌 S=停牌 D=能加倍則加倍否則要牌 P=分牌（否則按點數走 hard/soft 表）</div>
+  <div class="lbl2">Illustrious 18 <span class="badge">進階：因應true count偏離基本策略</span></div>
+  <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+    <input type="checkbox" id="useIndex" style="width:auto"> 啟用 index play（模擬同訓練評分都會用埋呢18條偏離規則）
+  </label>
+  <div class="note">Insurance（保險）：TC≥+3先買。16v10：TC≥0停牌。15v10：TC≥+4停牌。10v10：TC≥+4加倍。12v3：TC≥+2停牌。12v2：TC≥+3停牌。11vA：TC≥+1加倍。9v2：TC≥+1加倍。10vA：TC≥+4加倍。9v7：TC≥+3加倍。16v9：TC≥+5停牌。13v2：TC<−1要牌。12v4：TC<0要牌。12v5：TC<−2要牌。12v6：TC<−1要牌。13v3：TC<−2要牌。10,10 vs5：TC≥+5分牌。10,10 vs6：TC≥+4分牌。（出自Don Schlesinger, Hi-Lo系統）</div>
+  <div class="note">Composition-dependent play：程式已實現咗最常見嘅一種——投降淨係限首兩張牌先計（即係話同樣16點，兩張牌 10+6 先會建議投降，三張或以上砌成嘅16唔會，因為已經hit過）。更幼細嘅組合調整（例如識別5+5+6同10+6呢類同點數唔同組合嘅企/踩取捨）冇再進一步做，呢類調整對EV影響好細（&lt;0.03%），數據亦冇一套簡單、可靠驗證嘅完整表。</div>
+  <div class="note">「自動演算最優策略」用嘅係業界標準嘅無限副牌近似（每張牌獨立機率抽出，10點組佔4/13），跟返你而家嘅S17/H17、DAS開關計出每格嘅期望值，揀EV最高嗰個動作。分牌EV簡化做「唔計再分牌」（忽略resplit），呢個近似對大部分格都準,但邊界格（EV相差好近嗰啲）喺副數好少嘅時候可能會有細微偏差。投降位會自動更新（唔會顯示喺表格入面，但decide()會用返）。8,8 同 A,A 對子已寫死做「永遠分牌」——呢個係業界所有多副牌基本策略表都一致嘅規則，但無限副牌近似本身喺呢兩格會低估分牌嘅價值（Peter Griffin指出8同A係card-removal效應特別大嗰啲牌），所以冇跟返引擎計出嚟嘅數自動填，改用寫死值。</div>
+</div>
+
+<div class="card">
+  <h2>算牌規則 & 下注表</h2>
+  <div class="grid" style="margin-bottom:4px;max-width:280px">
+    <div><label>算牌系統</label><select id="countSystem" class="rulesel">
+      <option value="hilo" selected>Hi-Lo</option>
+      <option value="ko">KO (Knock-Out)</option>
+      <option value="hiopt1">Hi-Opt I</option>
+      <option value="omega2">Omega II</option>
+    </select></div>
+  </div>
+  <div class="note" id="sysExplain"></div>
+  <div class="lbl2">每張牌的計數值 <span class="badge">可自行修改，改咗即變自訂系統</span></div>
+  <div class="spread" id="weightRow"></div>
+  <div class="lbl2" style="margin-top:14px">Count → 下注倍數</div>
+  <div class="grid" style="max-width:520px;margin-bottom:8px">
+    <div><label>TC=0時嘅優勢(%)</label><input type="number" id="kellyBase" value="-0.5" step="0.1"></div>
+    <div><label>每+1 TC增加優勢(%)</label><input type="number" id="kellyPerTC" value="0.5" step="0.1"></div>
+    <button class="run" id="kellyFill" style="margin-top:18px">套用Kelly建議spread（近似）</button>
+  </div>
+  <div class="spread" id="spreadRow"></div>
+  <div class="note">count = running count ÷ 剩餘牌副數（非平衡系統如KO嚴格上應直接用running count，呢度為簡化統一做法）。實際下注 = 基本注 × 對應倍數。Kelly按鈕用線性近似 edge(TC)=TC0優勢+每點優勢×TC，除返「每手標準差」計嘅kelly fraction比例填表，只供參考。</div>
+</div>
+
+<button class="run" id="runBtn">開始模擬</button>
+<button class="actbtn" id="cmpBtn" style="width:100%;margin-top:8px">牌靴 vs CSM 對比（同一套策略同下注表）</button>
+<div class="card" id="cmpCard" style="display:none;margin-top:14px">
+  <h2>牌靴 vs CSM 對比</h2>
+  <div class="stats" id="cmpStats"></div>
+  <div class="note">兩邊用同一套規則、策略表、下注表同路徑數，唯一分別係洗牌方式。牌靴嘅優勢主要嚟自count高時加注；CSM每手重洗，加注時機消失，所以落注愈進取，兩者差距通常愈明顯。</div>
+</div>
+
+<div class="card" id="resultsCard" style="display:none">
+  <h2>結果</h2>
+  <div class="stats" id="stats"></div>
+  <canvas id="chart" width="800" height="180"></canvas>
+  <div class="note">圖表：金色帶係5%~95%嘅本金分佈範圍，粗線係中位數走勢（<span id="sampleEvery"></span>）。</div>
+</div>
+
+<div class="card">
+  <h2>訓練模式 <span class="badge">試玩單手，即時對照最佳策略</span></h2>
+  <div class="grid" style="margin-bottom:12px;max-width:400px">
+    <div><label>電腦玩家A 注碼(×基本注)</label><input type="number" id="compAmult" value="5" min="0" step="0.5"></div>
+    <div><label>電腦玩家B 注碼(×基本注)</label><input type="number" id="compBmult" value="1" min="0" step="0.5"></div>
+  </div>
+  <div class="stats" style="margin-top:0;margin-bottom:14px">
+    <div class="stat"><div class="v" id="pAcc">—</div><div class="l">策略正確率</div></div>
+    <div class="stat"><div class="v" id="pEvLost">—</div><div class="l">累計失誤代價（期望值）</div></div>
+    <div class="stat"><div class="v" id="pBank">1000</div><div class="l">你的訓練本金</div></div>
+    <div class="stat"><div class="v" id="pCompABank">1000</div><div class="l">電腦A本金</div></div>
+    <div class="stat"><div class="v" id="pCompBBank">1000</div><div class="l">電腦B本金</div></div>
+    <div class="stat"><div class="v" id="pCount">？</div><div class="l">實際 count（估完先揭）</div></div>
+    <div class="stat"><div class="v" id="pCountAcc">—</div><div class="l">算牌正確率</div></div>
+    <div class="stat"><div class="v" id="pInsAcc">—</div><div class="l">保險決策正確率</div></div>
+    <div class="stat"><div class="v" id="pDeepAcc">—</div><div class="l">深牌(剩≤半鞋)算牌準</div></div>
+    <div class="stat"><div class="v" id="pShallowAcc">—</div><div class="l">淺牌(剩>半鞋)算牌準</div></div>
+  </div>
+  <div id="pGuess" class="card" style="background:rgba(0,0,0,.15);margin-bottom:14px">
+    <div class="lbl2" style="margin-top:0">落注前，先估返呢鋪開始前嘅 count</div>
+    <div class="grid" style="max-width:360px">
+      <div><label>你估嘅 Running Count</label><input type="number" id="guessRC" step="1" value="0"></div>
+      <div><label>你估嘅 True Count</label><input type="number" id="guessTC" step="0.5" value="0"></div>
+    </div>
+    <div class="note" id="guessFeedback" style="min-height:18px"></div>
+  </div>
+  <div id="pBetPanel" class="card" style="background:rgba(0,0,0,.15);margin-bottom:14px;display:none">
+    <div class="lbl2" style="margin-top:0">依家想落幾多注？</div>
+    <div class="grid" style="max-width:240px">
+      <div><label>你嘅下注</label><input type="number" id="yourBetInput" step="1" min="0"></div>
+    </div>
+    <div class="note" id="betSuggestNote"></div>
+  </div>
+  <div id="pSeat"></div>
+  <div class="note" id="pFeedback" style="min-height:34px"></div>
+  <div id="pMistakes" style="margin:10px 0"></div>
+  <div id="pActions" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"></div>
+  <button class="run" id="pStart">核對 count 並落注</button>
+  <div class="grid" style="max-width:360px;margin-top:14px;align-items:end">
+    <div><label>訓練起始本金</label><input type="number" id="pBankStart" value="1000" min="1" step="100"></div>
+    <button class="actbtn" id="pBankReset">重設本金（保留正確率）</button>
+  </div>
+  <button class="actbtn" id="pReset" style="margin-top:10px">重設全部訓練紀錄</button>
+  <details id="pReplayWrap" style="margin-top:14px">
+    <summary style="cursor:pointer;color:var(--gold)">牌局回放（最近30手）</summary>
+    <div class="note">每手記低落注前count、你嘅估計、注碼、每個決定同建議、失誤代價同結果。撳任何一手展開。</div>
+    <div id="pReplay"></div>
+  </details>
+  <div class="note">電腦A、電腦B會用同一套策略表自動行牌（固定注碼，唔跟count），同你共用一底牌，令count變化更貼近真實牌桌。</div>
+</div>
+
+<div class="card">
+  <h2>純速算訓練 <span class="badge">唔使決策，淨係練track running count嘅反應速度</span></h2>
+  <div class="grid" style="max-width:360px;margin-bottom:10px">
+    <div><label>副數</label><input type="number" id="sdDecks" value="1" min="1" max="8"></div>
+    <div><label>每張顯示（毫秒）</label><input type="number" id="sdSpeed" value="700" min="100" step="50"></div>
+  </div>
+  <div style="text-align:center;margin:14px 0">
+    <div class="pcard" id="sdCard" style="width:90px;height:120px;font-size:2rem;margin:0 auto">?</div>
+    <div class="note" id="sdProgress" style="margin-top:8px"></div>
+  </div>
+  <div id="sdGuessRow" class="grid" style="max-width:240px;display:none;margin-bottom:10px">
+    <div><label>你數到嘅 Running Count</label><input type="number" id="sdGuessRC" step="1" value="0"></div>
+  </div>
+  <div class="note" id="sdFeedback"></div>
+  <button class="run" id="sdStart">開始</button>
+  <div class="note">用返「算牌規則」入面嗰套計數值。呢個模式冧咗策略決定，純粹操練你track牌嘅反應速度同準確度。</div>
+</div>
+
+<div class="card">
+  <h2>破產風險 (Risk of Ruin) 計算機</h2>
+  <div class="grid" style="max-width:500px">
+    <div><label>你嘅實際優勢 edge（%）</label><input type="number" id="rorEdge" value="1" step="0.1"></div>
+    <div><label>每手標準差（betting unit）</label><input type="number" id="rorSd" value="1.15" step="0.05"></div>
+    <div><label>本金（幾多個基本注單位）</label><input type="number" id="rorBank" value="200" step="10"></div>
+  </div>
+  <button class="run" id="rorCalc" style="margin-top:10px">計算</button>
+  <div class="stats" id="rorStats" style="display:none"></div>
+  <div class="note">用經典近似公式 RoR ≈ e^(−2×edge×本金單位÷變異數)（變異數=標準差²）。呢個係粗略估算,唔考慮你嘅落注spread會隨count改變,實際數值會複雜啲。標準差通常喺1.1~1.5之間,落注spread愈大、資訊愈準,標準差同破產風險都會上升。</div>
+</div>
+
+</div>
+
+<script>
+const DEALER_COLS=['2','3','4','5','6','7','8','9','10','A'];
+const RANK_GROUPS=['2','3','4','5','6','7','8','9','10','A'];
+function rankGroup(r){ return (r==='J'||r==='Q'||r==='K')?'10':r; }
+const COUNT_SYSTEMS={
+  hilo:{'2':1,'3':1,'4':1,'5':1,'6':1,'7':0,'8':0,'9':0,'10':-1,'A':-1},
+  ko:{'2':1,'3':1,'4':1,'5':1,'6':1,'7':1,'8':0,'9':0,'10':-1,'A':-1},
+  hiopt1:{'2':0,'3':1,'4':1,'5':1,'6':1,'7':0,'8':0,'9':0,'10':-1,'A':0},
+  omega2:{'2':1,'3':1,'4':2,'5':2,'6':2,'7':1,'8':0,'9':-1,'10':-2,'A':0}
+};
+const HARD_ROWS=[8,9,10,11,12,13,14,15,16];
+const SOFT_ROWS=[13,14,15,16,17,18,19,20]; // A,2 .. A,9
+const PAIR_ROWS=['2','3','4','5','6','7','8','9','10','A'];
+
+// default basic strategy (8-deck, S17, DAS, no surrender)
+const hardDefault={
+ 8:'H H H H H H H H H H', 9:'H D D D D H H H H H', 10:'D D D D D D D D H H',
+ 11:'D D D D D D D D D H', 12:'H H S S S H H H H H', 13:'S S S S S H H H H H',
+ 14:'S S S S S H H H H H', 15:'S S S S S H H H H H', 16:'S S S S S H H H H H'
+};
+const softDefault={
+ 13:'H H H D D H H H H H', 14:'H H H D D H H H H H', 15:'H H D D D H H H H H',
+ 16:'H H D D D H H H H H', 17:'H D D D D H H H H H', 18:'D D D D D S S H H H',
+ 19:'S S S S S S S S S S', 20:'S S S S S S S S S S'
+};
+const pairDefault={
+ '2':'P P P P P P H H H H', '3':'P P P P P P H H H H', '4':'H H H P P H H H H H',
+ '5':'D D D D D D D D H H', '6':'P P P P P H H H H H', '7':'P P P P P P H H H H',
+ '8':'P P P P P P P P P P', '9':'P P P P P S P P S S', '10':'S S S S S S S S S S',
+ 'A':'P P P P P P P P P P'
+};
+
+function buildTable(id,rows,rowLabelFn,defaults,options){
+  const el=document.getElementById(id);
+  let html='<div class="tablewrap"><table><tr><th>点数\\庄家</th>'+
+    DEALER_COLS.map(c=>'<th>'+c+'</th>').join('')+'</tr>';
+  rows.forEach(r=>{
+    const vals=defaults[r].split(' ');
+    html+='<tr><td class="rowlabel">'+rowLabelFn(r)+'</td>'+
+      vals.map((v,ci)=>'<td><select class="'+v+'" data-row="'+r+'" data-col="'+ci+'">'+
+        options.map(o=>'<option value="'+o+'"'+(o===v?' selected':'')+'>'+o+'</option>').join('')+
+      '</select></td>').join('')+'</tr>';
+  });
+  html+='</table></div>';
+  el.innerHTML=html;
+  el.querySelectorAll('select').forEach(s=>{
+    s.addEventListener('change',()=>{s.className=s.value;});
+  });
+}
+buildTable('panel-hard',HARD_ROWS,r=>r,hardDefault,['H','S','D']);
+buildTable('panel-soft',SOFT_ROWS,r=>'A,'+(r-11),softDefault,['H','S','D']);
+buildTable('panel-pair',PAIR_ROWS,r=>r+','+r,pairDefault,['H','S','D','P']);
+
+// ---- Auto-compute optimal strategy (infinite-deck approximation) ----
+const CARD_PROBS={'2':1/13,'3':1/13,'4':1/13,'5':1/13,'6':1/13,'7':1/13,'8':1/13,'9':1/13,'10':4/13,'A':1/13};
+function nextState(total,soft,rv,isAce){
+  let t=total+rv, s=soft||isAce;
+  if(t>21 && s){ t-=10; s=false; }
+  return {t,s,bust:t>21};
+}
+function buildDealerRec(rules){
+  const memo={};
+  function rec(total,soft){
+    const key=total+'|'+soft;
+    if(memo[key]) return memo[key];
+    let dist={bust:0,17:0,18:0,19:0,20:0,21:0};
+    if(total>21){ dist.bust=1; return memo[key]=dist; }
+    const mustStand = total>=18 || (total===17 && !(soft&&rules.h17));
+    if(mustStand){ dist[total]=1; return memo[key]=dist; }
+    for(const r of RANK_GROUPS){
+      const p=CARD_PROBS[r], rv=cardVal(r), isAce=(r==='A');
+      const ns=nextState(total,soft,rv,isAce);
+      const sub=rec(ns.t,ns.s);
+      for(const k in sub) dist[k]=(dist[k]||0)+p*sub[k];
+    }
+    return memo[key]=dist;
+  }
+  return rec;
+}
+function dealerDist(upRank,rec){
+  const startVal=cardVal(upRank), startSoft=(upRank==='A');
+  if(upRank==='A' || upRank==='10'){
+    // Peek/hole-card game: if the hole card would complete a dealer blackjack, the round already
+    // ended before the player acts, so basic-strategy comparisons condition on "no dealer blackjack" —
+    // exclude that hole card and renormalize over the rest.
+    const excludeRank = upRank==='A' ? '10' : 'A';
+    const renorm = 1-CARD_PROBS[excludeRank];
+    let dist={bust:0,17:0,18:0,19:0,20:0,21:0};
+    for(const r of RANK_GROUPS){
+      if(r===excludeRank) continue;
+      const p=CARD_PROBS[r]/renorm;
+      const rv=cardVal(r), isAce=(r==='A');
+      const ns=nextState(startVal,startSoft,rv,isAce);
+      const sub=rec(ns.t,ns.s);
+      for(const k in sub) dist[k]=(dist[k]||0)+p*sub[k];
+    }
+    return dist;
+  }
+  return rec(startVal,startSoft);
+}
+function standEV(myTotal,dist){
+  let ev=dist.bust*1;
+  [17,18,19,20,21].forEach(t=>{
+    const p=dist[t]||0;
+    ev += p*(myTotal>t?1:myTotal===t?0:-1);
+  });
+  return ev;
+}
+function computeHandValues(dist){
+  const standMemo={}, hitMemo={}, Vmemo={};
+  function stand(t){ return standMemo[t]!==undefined?standMemo[t]:(standMemo[t]=standEV(t,dist)); }
+  function hit(t,soft){
+    const key=t+'|'+soft;
+    if(hitMemo[key]!==undefined) return hitMemo[key];
+    let ev=0;
+    for(const r of RANK_GROUPS){
+      const p=CARD_PROBS[r], rv=cardVal(r), isAce=(r==='A');
+      const ns=nextState(t,soft,rv,isAce);
+      ev += p*(ns.bust?-1:V(ns.t,ns.s));
+    }
+    return hitMemo[key]=ev;
+  }
+  function V(t,soft){
+    if(t>21) return -1;
+    const key=t+'|'+soft;
+    if(Vmemo[key]!==undefined) return Vmemo[key];
+    return Vmemo[key]=Math.max(stand(t),hit(t,soft));
+  }
+  function doubleVal(t,soft){
+    let ev=0;
+    for(const r of RANK_GROUPS){
+      const p=CARD_PROBS[r], rv=cardVal(r), isAce=(r==='A');
+      const ns=nextState(t,soft,rv,isAce);
+      ev += p*2*(ns.bust?-1:stand(ns.t));
+    }
+    return ev;
+  }
+  return {stand,hit,V,doubleVal};
+}
+function splitEV(rank,dasAllowed,fns){
+  const {stand,hit,doubleVal}=fns;
+  let ev=0;
+  if(rank==='A'){
+    for(const r of RANK_GROUPS){
+      const p=CARD_PROBS[r], rv=cardVal(r);
+      let t=11+rv, soft=true; if(t>21){ t-=10; soft=false; }
+      ev += p*stand(t); // split aces: exactly one card, no further action
+    }
+    return 2*ev;
+  }
+  const base=cardVal(rank);
+  for(const r of RANK_GROUPS){
+    const p=CARD_PROBS[r], rv=cardVal(r), isAce=(r==='A');
+    let t=base+rv, soft=isAce; if(t>21 && soft){ t-=10; soft=false; }
+    const sv=stand(t), hv=hit(t,soft), dv=dasAllowed?doubleVal(t,soft):-Infinity;
+    ev += p*Math.max(sv,hv,dv);
+  }
+  return 2*ev;
+}
+function autoOptimalStrategy(){
+  const h17 = document.getElementById('soft17').value==='H17';
+  const das = document.getElementById('das').value==='yes';
+  const rec=buildDealerRec({h17});
+  const hardOut={}, softOut={}, pairOut={}, surrGrouped={};
+  DEALER_COLS.forEach((dCol,ci)=>{
+    const dist=dealerDist(dCol,rec);
+    const fns=computeHandValues(dist);
+    const {stand,hit,doubleVal}=fns;
+    HARD_ROWS.forEach(t=>{
+      const sv=stand(t), hv=hit(t,false), dv=doubleVal(t,false);
+      let code='H', best=hv;
+      if(sv>best){code='S';best=sv;} if(dv>best){code='D';best=dv;}
+      (hardOut[t]=hardOut[t]||[])[ci]=code;
+      if(-0.5>best){ (surrGrouped[t]=surrGrouped[t]||[]).push(dCol); }
+    });
+    SOFT_ROWS.forEach(t=>{
+      const sv=stand(t), hv=hit(t,true), dv=doubleVal(t,true);
+      let code='H', best=hv;
+      if(sv>best){code='S';best=sv;} if(dv>best){code='D';best=dv;}
+      (softOut[t]=softOut[t]||[])[ci]=code;
+    });
+    PAIR_ROWS.forEach(rank=>{
+      const nsTotal = rank==='A'?12:2*cardVal(rank);
+      const nsSoft = rank==='A';
+      const sv=stand(nsTotal), hv=hit(nsTotal,nsSoft), dv=doubleVal(nsTotal,nsSoft);
+      let code='H', best=hv;
+      if(sv>best){code='S';best=sv;} if(dv>best){code='D';best=dv;}
+      const spv=splitEV(rank,das,fns);
+      if(spv>best){code='P';best=spv;}
+      (pairOut[rank]=pairOut[rank]||[])[ci]=code;
+    });
+  });
+  // Known hard limitation of the infinite-deck model: it can under-value splitting 8,8 and A,A because
+  // it misses card-removal effects Peter Griffin documented as unusually large for these two pairs.
+  // Every mainstream multi-deck S17/H17 hole-card chart says "always split 8s and aces", so we hardcode both.
+  pairOut['8']=DEALER_COLS.map(()=>'P');
+  pairOut['A']=DEALER_COLS.map(()=>'P');
+  const toStr=(obj)=>{ const o={}; for(const k in obj) o[k]=obj[k].join(' '); return o; };
+  buildTable('panel-hard',HARD_ROWS,r=>r,toStr(hardOut),['H','S','D']);
+  buildTable('panel-soft',SOFT_ROWS,r=>'A,'+(r-11),toStr(softOut),['H','S','D']);
+  buildTable('panel-pair',PAIR_ROWS,r=>r+','+r,toStr(pairOut),['H','S','D','P']);
+  SURRENDER_TABLE=surrGrouped;
+  const surrList=Object.keys(surrGrouped).map(t=>surrGrouped[t].map(d=>t+'v'+d).join('、')).join('、');
+  document.getElementById('autoStratNote').textContent =
+    '已按'+(h17?'H17':'S17')+'／DAS'+(das?'允許':'不允許')+' 重新演算並填入策略表。'+
+    (surrList? '建議投降位（decide()已自動生效）：'+surrList+'。':'呢個規則組合下冇任何位置值得投降。');
+}
+document.getElementById('autoStratBtn').addEventListener('click',autoOptimalStrategy);
+
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tablepanel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('panel-'+t.dataset.t).classList.add('active');
+}));
+
+// bet spread: true count -6..+10
+const spreadDefault={};
+for(let tc=-6;tc<=10;tc++) spreadDefault[tc]= tc<=0?1: Math.min(tc,8);
+(function buildSpread(){
+  const el=document.getElementById('spreadRow');
+  let html='';
+  for(let tc=-6;tc<=10;tc++){
+    html+='<div class="spreadcol"><label>'+(tc>0?'+':'')+tc+'</label>'+
+      '<input type="number" min="0" step="1" value="'+spreadDefault[tc]+'" data-tc="'+tc+'"></div>';
+  }
+  el.innerHTML=html;
+})();
+
+const SYS_EXPLAIN={
+  hilo:'Hi-Lo：最普及嘅平衡系統，2–6算+1、7–9算0、10/J/Q/K/A算−1，簡單易學，適合入門。',
+  ko:'KO (Knock-Out)：非平衡系統，連7都算+1，理論上毋須除牌副數用running count直接下注，較易心算。',
+  hiopt1:'Hi-Opt I：2唔計分、A都唔計，只有3–6算+1、10及公仔算−1，變異數低但要另外數A先夠準。',
+  omega2:'Omega II：多層級（±1/±2）平衡系統，4–6算+2、其他±1，準度較高但心算難度亦較高。'
+};
+function buildWeightRow(sysName){
+  const w=COUNT_SYSTEMS[sysName]||COUNT_SYSTEMS.hilo;
+  let html='';
+  RANK_GROUPS.forEach(r=>{
+    html+='<div class="spreadcol"><label>'+r+'</label><input type="number" step="1" value="'+w[r]+'" data-r="'+r+'"></div>';
+  });
+  document.getElementById('weightRow').innerHTML=html;
+  document.getElementById('sysExplain').textContent=SYS_EXPLAIN[sysName]||'自訂系統：已手動修改各牌的計數值。';
+}
+function getWeights(){
+  const m={};
+  document.querySelectorAll('#weightRow input').forEach(i=>{ m[i.dataset.r]=+i.value||0; });
+  return m;
+}
+buildWeightRow('hilo');
+document.getElementById('countSystem').addEventListener('change',e=>buildWeightRow(e.target.value));
+
+function updateBJWarn(){
+  document.getElementById('bj65Warn').style.display = (document.getElementById('bjPayout').value==='1.2')?'block':'none';
+}
+document.getElementById('bjPayout').addEventListener('change',updateBJWarn);
+updateBJWarn();
+
+document.getElementById('kellyFill').addEventListener('click',()=>{
+  const base=+document.getElementById('kellyBase').value/100;
+  const perTC=+document.getElementById('kellyPerTC').value/100;
+  const sd=+(document.getElementById('rorSd')?document.getElementById('rorSd').value:1.15)||1.15;
+  const variance=sd*sd;
+  const edgeAt=(tc)=>base+perTC*tc;
+  const refEdge=Math.max(edgeAt(2),0.0001); // normalize ramp start around TC+2
+  document.querySelectorAll('#spreadRow input').forEach(inp=>{
+    const tc=+inp.dataset.tc;
+    const e=edgeAt(tc);
+    let mult = tc<=2 ? 1 : Math.round(Math.max(1, e/refEdge));
+    inp.value=Math.min(12,mult);
+  });
+});
+document.getElementById('weightRow').addEventListener('input',()=>{
+  document.getElementById('sysExplain').textContent='自訂系統：已手動修改各牌的計數值（下拉選單只作為起始範本）。';
+});
+
+function readStrategy(){
+  const get=(panelId)=>{
+    const m={};
+    document.querySelectorAll('#'+panelId+' select').forEach(s=>{
+      const r=s.dataset.row, c=+s.dataset.col;
+      m[r]=m[r]||[]; m[r][c]=s.value;
+    });
+    return m;
+  };
+  return {hard:get('panel-hard'), soft:get('panel-soft'), pair:get('panel-pair')};
+}
+function readSpread(){
+  const m={};
+  document.querySelectorAll('#spreadRow input').forEach(i=>{ m[+i.dataset.tc]=+i.value||0; });
+  return m;
+}
+function betForTrueCount(tc,spread){
+  const t=Math.max(-6,Math.min(10,Math.round(tc)));
+  return spread[t]!==undefined?spread[t]:spread[10];
+}
+
+// ---- Blackjack engine ----
+const RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+function cardVal(r){ if(r==='J'||r==='Q'||r==='K') return 10; if(r==='A') return 11; return +r; }
+function countVal(r,weights){ return (weights||COUNT_SYSTEMS.hilo)[rankGroup(r)]; }
+
+function newShoe(decks,weights){
+  const cards=[];
+  for(let d=0; d<decks; d++) for(const r of RANKS) for(let k=0;k<4;k++) cards.push(r);
+  for(let i=cards.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [cards[i],cards[j]]=[cards[j],cards[i]]; }
+  return {cards, pos:0, total:cards.length, rc:0, weights:weights||COUNT_SYSTEMS.hilo};
+}
+function draw(shoe){ const c=shoe.cards[shoe.pos++]; shoe.rc+=countVal(c,shoe.weights); return c; }
+function drawSilent(shoe){ return shoe.cards[shoe.pos++]; } // for a hidden hole card; count it later via revealHole
+function revealHole(shoe,card){ shoe.rc+=countVal(card,shoe.weights); }
+function needsReshuffle(shoe,penFrac){ return (shoe.total-shoe.pos) <= shoe.total*(penFrac); }
+
+function handInfo(cards){
+  let total=0, aces=0;
+  for(const c of cards){ total+=cardVal(c); if(c==='A') aces++; }
+  while(total>21 && aces>0){ total-=10; aces--; }
+  const isSoft = aces>0;
+  return {total,isSoft,bust:total>21,blackjack:cards.length===2&&total===21};
+}
+// Illustrious 18 (Don Schlesinger, Hi-Lo true count indices, multi-deck).
+// dir 'ge': deviate to `act` when TC >= th (else keep basic strategy).
+// dir 'lt': basic strategy is Stand; deviate to Hit when TC < th.
+const ILL18=[
+  {t:16,d:'10',dir:'ge',th:0, act:'S'}, {t:15,d:'10',dir:'ge',th:4, act:'S'},
+  {t:10,d:'10',dir:'ge',th:4, act:'D'}, {t:12,d:'3', dir:'ge',th:2, act:'S'},
+  {t:12,d:'2', dir:'ge',th:3, act:'S'}, {t:11,d:'A', dir:'ge',th:1, act:'D'},
+  {t:9, d:'2', dir:'ge',th:1, act:'D'}, {t:10,d:'A', dir:'ge',th:4, act:'D'},
+  {t:9, d:'7', dir:'ge',th:3, act:'D'}, {t:16,d:'9', dir:'ge',th:5, act:'S'},
+  {t:13,d:'2', dir:'lt',th:-1,act:'H'}, {t:12,d:'4', dir:'lt',th:0, act:'H'},
+  {t:12,d:'5', dir:'lt',th:-2,act:'H'}, {t:12,d:'6', dir:'lt',th:-1,act:'H'},
+  {t:13,d:'3', dir:'lt',th:-2,act:'H'}
+];
+const ILL18_PAIR=[ {d:'5',th:5,act:'P'}, {d:'6',th:4,act:'P'} ]; // hard 10,10 vs 5/6: split
+const ILL18_INS_TC=3;
+// Late-surrender chart (8-deck S17 default): hard 15 vs 10; hard 16 vs 9,10,A (not 8,8 pairs). Recomputed by "自動演算最優策略".
+let SURRENDER_TABLE={15:['10'], 16:['9','10','A']};
+function indexOverride(cards,dealerCol,tc,canDouble,canSplit){
+  if(cards.length===2 && canSplit && cardVal(cards[0])===10 && cardVal(cards[1])===10){
+    const p=ILL18_PAIR.find(x=>x.d===dealerCol);
+    if(p && tc>=p.th) return 'split';
+  }
+  if(cards.length!==2) return null;
+  const info=handInfo(cards);
+  if(info.isSoft) return null;
+  const hit=ILL18.find(x=>x.t===info.total && x.d===dealerCol);
+  if(!hit) return null;
+  const trigger = hit.dir==='ge' ? tc>=hit.th : tc<hit.th;
+  if(!trigger) return null;
+  if(hit.act==='D') return canDouble?'double':null;
+  if(hit.act==='S') return 'stand';
+  if(hit.act==='H') return 'hit';
+  return null;
+}
+function decide(cards,dealerIdx,canDouble,canSplit,strategy,tc,useIndex,canSurrender,surrenderAllowed){
+  if(surrenderAllowed && canSurrender && cards.length===2){
+    const info0=handInfo(cards);
+    const dCol=DEALER_COLS[dealerIdx];
+    const isPairEight = cardVal(cards[0])===8 && cardVal(cards[1])===8;
+    if(!info0.isSoft && !isPairEight && SURRENDER_TABLE[info0.total] && SURRENDER_TABLE[info0.total].includes(dCol)) return 'surrender';
+  }
+  if(useIndex && typeof tc==='number'){
+    const ov=indexOverride(cards,DEALER_COLS[dealerIdx],tc,canDouble,canSplit);
+    if(ov) return ov;
+  }
+  const isPair = cards.length===2 && cardVal(cards[0])===cardVal(cards[1]) && (cards[0]===cards[1] || (cardVal(cards[0])===10&&cardVal(cards[1])===10));
+  if(isPair && canSplit){
+    const rank = cards[0]==='A'?'A':(cardVal(cards[0])===10?'10':String(cardVal(cards[0])));
+    const code=(strategy.pair[rank]||[])[dealerIdx];
+    if(code==='P') return 'split';
+  }
+  const info=handInfo(cards);
+  let code;
+  if(info.isSoft && info.total<=20 && info.total>=13){
+    code=(strategy.soft[info.total]||[])[dealerIdx] || 'S';
+  } else {
+    const t=Math.max(8,Math.min(16,info.total));
+    if(info.total<8) code='H'; else if(info.total>16) code='S';
+    else code=(strategy.hard[t]||[])[dealerIdx] || 'S';
+  }
+  if(code==='D') return canDouble?'double':'hit';
+  if(code==='S') return 'stand';
+  return 'hit';
+}
+
+function dealerShouldHit(cards,rules){
+  const info=handInfo(cards);
+  if(info.total<17) return true;
+  if(info.total===17 && info.isSoft && rules.soft17==='H17') return true;
+  return false;
+}
+
+function runSimulation(cfg,strategy,spread,onDone){
+  const decks=cfg.decks, penFrac=cfg.pen/100, unit=cfg.unit, startBank=cfg.bank, rounds=cfg.rounds;
+  const rules={soft17:cfg.soft17, das:cfg.das==='yes', maxHands:cfg.maxHands, bjPayout:cfg.bjPayout, surrender:cfg.surrender==='late'};
+  let shoe=newShoe(decks,cfg.weights);
+  let bankroll=startBank;
+  let wagered=0, wins=0, losses=0, pushes=0, blackjacks=0, handsPlayed=0;
+  const history=[bankroll];
+  const sampleEvery=Math.max(1,Math.floor(rounds/300));
+
+  for(let round=0; round<rounds; round++){
+    if(cfg.csm || needsReshuffle(shoe,penFrac)) shoe=newShoe(decks,cfg.weights);
+    const decksRemaining=Math.max(0.5,(shoe.total-shoe.pos)/52);
+    const tc=shoe.rc/decksRemaining;
+    const mult=betForTrueCount(tc,spread);
+    const bet=unit*mult;
+
+    const p1=draw(shoe), d_up=draw(shoe), p2=draw(shoe), d_hole=drawSilent(shoe);
+    const playerCards=[p1,p2];
+    wagered+=bet;
+
+    const pInfo=handInfo(playerCards);
+    const dInfoPeek=handInfo([d_up,d_hole]);
+    if(d_up==='A' && cfg.useIndex){
+      const insBet=bet/2;
+      if(tc>=ILL18_INS_TC){ wagered+=insBet; bankroll += dInfoPeek.blackjack? insBet*2 : -insBet; }
+    }
+    if(pInfo.blackjack || dInfoPeek.blackjack){
+      revealHole(shoe,d_hole);
+      if(pInfo.blackjack && dInfoPeek.blackjack){ pushes++; }
+      else if(pInfo.blackjack){ bankroll+=bet*rules.bjPayout; wins++; blackjacks++; }
+      else { bankroll-=bet; losses++; }
+      handsPlayed++;
+      if(round%sampleEvery===0) history.push(bankroll);
+      continue;
+    }
+
+    const dealerIdx=DEALER_COLS.indexOf(d_up==='A'?'A':(cardVal(d_up)===10?'10':String(cardVal(d_up))));
+    let hands=[{cards:playerCards.slice(),bet:bet,doubled:false,splitAces:false}];
+    for(let hi=0; hi<hands.length; hi++){
+      let h=hands[hi];
+      while(true){
+        const canDouble = h.cards.length===2 && !h.splitAces && (hands.length===1 || rules.das);
+        const canSp = hands.length<rules.maxHands && h.cards.length===2;
+        const canSur = hands.length===1 && h.cards.length===2;
+        const action=decide(h.cards,dealerIdx,canDouble,canSp,strategy,tc,cfg.useIndex,canSur,rules.surrender);
+        if(action==='surrender'){ bankroll-=h.bet/2; h.surrendered=true; break; }
+        if(action==='split' && canSp){
+          const c1=h.cards[0], c2=h.cards[1];
+          h.cards=[c1, draw(shoe)]; h.splitAces=(c1==='A');
+          hands.push({cards:[c2, draw(shoe)], bet:bet, doubled:false, splitAces:(c2==='A')});
+          continue;
+        }
+        if(action==='double' && canDouble){ h.cards.push(draw(shoe)); h.doubled=true; h.bet*=2; wagered+=h.bet/2; break; }
+        if(action==='hit'){
+          h.cards.push(draw(shoe));
+          if(h.splitAces) break;
+          if(handInfo(h.cards).bust) break;
+          continue;
+        }
+        break;
+      }
+    }
+
+    revealHole(shoe,d_hole);
+    const dealerCards=[d_up,d_hole];
+    const allBust = hands.every(h=>handInfo(h.cards).bust || h.surrendered);
+    if(!allBust){ while(dealerShouldHit(dealerCards,rules)) dealerCards.push(draw(shoe)); }
+    const dFinal=handInfo(dealerCards);
+
+    hands.forEach(h=>{
+      if(h.surrendered){ handsPlayed++; losses++; return; }
+      const info=handInfo(h.cards);
+      handsPlayed++;
+      if(info.bust){ bankroll-=h.bet; losses++; return; }
+      if(dFinal.bust || info.total>dFinal.total){ bankroll+=h.bet; wins++; }
+      else if(info.total===dFinal.total){ pushes++; }
+      else { bankroll-=h.bet; losses++; }
+    });
+
+    if(round%sampleEvery===0) history.push(bankroll);
+  }
+  onDone({bankroll,wagered,wins,losses,pushes,blackjacks,handsPlayed,history,startBank,sampleEvery});
+}
+
+function percentile(sorted,p){
+  const idx=Math.min(sorted.length-1,Math.max(0,Math.round(p*(sorted.length-1))));
+  return sorted[idx];
+}
+function runDistribution(cfg,strategy,spread,numPaths,onDone){
+  const runs=[];
+  let sumFinal=0, minFinal=Infinity, maxFinal=-Infinity, profitable=0, wentBust=0;
+  let totalWagered=0, totalWins=0, totalLosses=0, totalPushes=0, totalHands=0, totalBJ=0;
+  for(let p=0; p<numPaths; p++){
+    runSimulation(cfg,strategy,spread,(res)=>{
+      runs.push(res.history);
+      const finalB=res.bankroll;
+      sumFinal+=finalB; minFinal=Math.min(minFinal,finalB); maxFinal=Math.max(maxFinal,finalB);
+      if(finalB>res.startBank) profitable++;
+      if(res.history.some(v=>v<=0)) wentBust++;
+      totalWagered+=res.wagered; totalWins+=res.wins; totalLosses+=res.losses; totalPushes+=res.pushes;
+      totalHands+=res.handsPlayed; totalBJ+=res.blackjacks;
+    });
+  }
+  const L=runs[0].length;
+  const p5=[],p50=[],p95=[];
+  for(let i=0;i<L;i++){
+    const vals=runs.map(h=>h[Math.min(i,h.length-1)]).sort((a,b)=>a-b);
+    p5.push(percentile(vals,0.05)); p50.push(percentile(vals,0.5)); p95.push(percentile(vals,0.95));
+  }
+  onDone({
+    p5,p50,p95, startBank:cfg.bank, numPaths,
+    avgFinal:sumFinal/numPaths, minFinal, maxFinal,
+    profitablePct:profitable/numPaths*100, bustPct:wentBust/numPaths*100,
+    avgWagered:totalWagered/numPaths, avgWins:totalWins/numPaths, avgLosses:totalLosses/numPaths,
+    avgPushes:totalPushes/numPaths, avgHands:totalHands/numPaths, avgBJ:totalBJ/numPaths
+  });
+}
+
+function fmt(n){ return n.toLocaleString('en-US',{maximumFractionDigits:0}); }
+
+document.getElementById('runBtn').addEventListener('click',()=>{
+  const btn=document.getElementById('runBtn');
+  btn.disabled=true; btn.textContent='模擬中…';
+  setTimeout(()=>{
+    try{
+      const cfg={
+        decks:+document.getElementById('decks').value,
+        pen:+document.getElementById('pen').value,
+        unit:+document.getElementById('unit').value,
+        bank:+document.getElementById('bank').value,
+        rounds:+document.getElementById('rounds').value,
+        soft17:document.getElementById('soft17').value,
+        das:document.getElementById('das').value,
+        maxHands:+document.getElementById('maxHands').value,
+        bjPayout:+document.getElementById('bjPayout').value,
+        weights:getWeights(),
+        useIndex:document.getElementById('useIndex').checked,
+        surrender:document.getElementById('surrender').value,
+        csm:document.getElementById('shuffleMode').value==='csm'
+      };
+      const numPaths=Math.max(1,+document.getElementById('numPaths').value||1);
+      const strategy=readStrategy();
+      const spread=readSpread();
+      runDistribution(cfg,strategy,spread,numPaths,(res)=>{
+        const finalMedian=res.p50[res.p50.length-1];
+        const netMedian=finalMedian-res.startBank;
+        const edge=res.avgWagered>0? ((res.avgFinal-res.startBank)/res.avgWagered*100):0;
+        document.getElementById('resultsCard').style.display='block';
+        document.getElementById('sampleEvery').textContent=numPaths+' 條路徑，每條';
+        document.getElementById('stats').innerHTML=[
+          ['中位數最終本金', fmt(finalMedian), netMedian>=0?'pos':'neg'],
+          ['平均最終本金', fmt(res.avgFinal), (res.avgFinal>=res.startBank)?'pos':'neg'],
+          ['平均實際優勢', edge.toFixed(2)+'%', edge>=0?'pos':'neg'],
+          ['最差／最好路徑', fmt(res.minFinal)+' ~ '+fmt(res.maxFinal), ''],
+          ['賺錢路徑比例', res.profitablePct.toFixed(1)+'%', res.profitablePct>=50?'pos':'neg'],
+          ['曾經跌穿0蚊嘅比例', res.bustPct.toFixed(1)+'%', res.bustPct>10?'neg':'pos'],
+          ['平均每路徑手數', fmt(Math.round(res.avgHands)), ''],
+          ['平均贏/平/輸', Math.round(res.avgWins)+' / '+Math.round(res.avgPushes)+' / '+Math.round(res.avgLosses), '']
+        ].map(([l,v,cls])=>'<div class="stat"><div class="v '+cls+'">'+v+'</div><div class="l">'+l+'</div></div>').join('');
+
+        const cv=document.getElementById('chart');
+        const ctx=cv.getContext('2d');
+        ctx.clearRect(0,0,cv.width,cv.height);
+        const n=res.p50.length;
+        const allVals=[...res.p5,...res.p95];
+        const min=Math.min(...allVals), max=Math.max(...allVals);
+        const pad=10;
+        const xy=(i,v)=>[pad+i/(n-1)*(cv.width-2*pad), cv.height-pad-((v-min)/((max-min)||1))*(cv.height-2*pad)];
+        // shaded 5%-95% band
+        ctx.beginPath();
+        res.p95.forEach((v,i)=>{ const [x,y]=xy(i,v); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+        for(let i=n-1;i>=0;i--){ const [x,y]=xy(i,res.p5[i]); ctx.lineTo(x,y); }
+        ctx.closePath();
+        ctx.fillStyle='rgba(201,162,39,.18)'; ctx.fill();
+        // median line
+        ctx.strokeStyle='#c9a227'; ctx.lineWidth=1.8; ctx.beginPath();
+        res.p50.forEach((v,i)=>{ const [x,y]=xy(i,v); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+        ctx.stroke();
+        // starting-bankroll reference line
+        ctx.strokeStyle='rgba(169,194,182,.35)'; ctx.beginPath();
+        const [zx0,zy]=xy(0,res.startBank);
+        ctx.moveTo(pad,zy); ctx.lineTo(cv.width-pad,zy); ctx.stroke();
+      });
+    } finally {
+      btn.disabled=false; btn.textContent='開始模擬';
+    }
+  },30);
+});
+
+// ---- Practice / training mode ----
+const PZ={correct:0,total:0,bank:1000,hands:[],curIndex:0,phase:'guess',shoe:null,cfg:null,spread:null,outcome:'',
+  lastFeedback:'',botA:{bank:1000},botB:{bank:1000},botAHands:[],botBHands:[],botAOutcome:'',botBOutcome:'',
+  countCorrect:0,countTotal:0,guessFeedback:'',revealRC:null,revealTC:null,
+  insCorrect:0,insTotal:0,deepCorrect:0,deepTotal:0,shallowCorrect:0,shallowTotal:0,mistakes:{},
+  evLost:0,log:[],handNo:0,curRec:null,lastGuess:null};
+
+const PZ_STORE_KEY='bj_training_stats_v1';
+function pSaveStats(){
+  try{
+    const data={correct:PZ.correct,total:PZ.total,bank:PZ.bank,botABank:PZ.botA.bank,botBBank:PZ.botB.bank,
+      countCorrect:PZ.countCorrect,countTotal:PZ.countTotal,insCorrect:PZ.insCorrect,insTotal:PZ.insTotal,
+      deepCorrect:PZ.deepCorrect,deepTotal:PZ.deepTotal,shallowCorrect:PZ.shallowCorrect,shallowTotal:PZ.shallowTotal,
+      mistakes:PZ.mistakes,evLost:PZ.evLost,handNo:PZ.handNo};
+    localStorage.setItem(PZ_STORE_KEY,JSON.stringify(data));
+  }catch(e){ /* storage unavailable — training just won't persist across sessions */ }
+}
+function pLoadStats(){
+  try{
+    const raw=localStorage.getItem(PZ_STORE_KEY);
+    if(!raw) return;
+    const d=JSON.parse(raw);
+    Object.assign(PZ,{correct:d.correct||0,total:d.total||0,bank:d.bank??1000,
+      countCorrect:d.countCorrect||0,countTotal:d.countTotal||0,
+      insCorrect:d.insCorrect||0,insTotal:d.insTotal||0,
+      deepCorrect:d.deepCorrect||0,deepTotal:d.deepTotal||0,
+      shallowCorrect:d.shallowCorrect||0,shallowTotal:d.shallowTotal||0});
+    PZ.mistakes=d.mistakes||{};
+    PZ.evLost=d.evLost||0; PZ.handNo=d.handNo||0;
+    PZ.botA.bank=d.botABank??1000; PZ.botB.bank=d.botBBank??1000;
+  }catch(e){ /* ignore corrupt/unavailable storage */ }
+}
+pLoadStats();
+pLoadReplay();
+pRender();
+renderReplay();
+
+// ---- EV cost of decisions (infinite-deck model, basic-strategy EV, count ignored) ----
+const EV_CACHE={};
+function evFns(dCol,h17){
+  const key=dCol+'|'+(h17?1:0);
+  if(!EV_CACHE[key]){ const rec=buildDealerRec({h17}); EV_CACHE[key]=computeHandValues(dealerDist(dCol,rec)); }
+  return EV_CACHE[key];
+}
+function actionEVs(ranks,dCol,o){
+  const f=evFns(dCol,o.h17), info=handInfo(ranks), t=info.total, soft=info.isSoft;
+  const ev={stand:f.stand(t), hit:f.hit(t,soft)};
+  if(o.canDouble) ev.double=f.doubleVal(t,soft);
+  if(o.canSplit){ const r=ranks[0]; const rank=r==='A'?'A':(cardVal(r)===10?'10':String(cardVal(r))); ev.split=splitEV(rank,o.das,f); }
+  if(o.canSur) ev.surrender=-0.5;
+  return ev;
+}
+// Insurance EV per unit of insurance bet from the actual unseen cards (remaining shoe + hole card).
+function insuranceEVUnit(){
+  const unseen=PZ.shoe.cards.slice(PZ.shoe.pos).concat([PZ.holeCard.r]);
+  const tens=unseen.filter(c=>cardVal(c)===10).length;
+  const p=tens/unseen.length; return 3*p-1;
+}
+const PZ_REPLAY_KEY='bj_training_replay_v1';
+function pSaveReplay(){ try{ localStorage.setItem(PZ_REPLAY_KEY,JSON.stringify(PZ.log.slice(0,30))); }catch(e){} }
+function pLoadReplay(){ try{ const r=localStorage.getItem(PZ_REPLAY_KEY); PZ.log=r?JSON.parse(r):[]; }catch(e){ PZ.log=[]; } }
+function cardsStr(cs){ return cs.map(c=>c.r+(c.suit||'')).join(' '); }
+function pFinishRecord(){
+  const R=PZ.curRec; if(!R) return;
+  R.dealer=cardsStr(PZ.dealerFinal||[PZ.dealerUp,PZ.holeCard]);
+  R.dealerTotal=handInfo((PZ.dealerFinal||[PZ.dealerUp,PZ.holeCard]).map(c=>c.r)).total;
+  R.hands=PZ.hands.map(h=>({cards:cardsStr(h.cards),total:handInfo(h.cards.map(c=>c.r)).total,bet:h.bet,sur:!!h.surrendered}));
+  R.net=PZ.bank-R.bankStart;
+  PZ.log.unshift(R); PZ.log=PZ.log.slice(0,30); PZ.curRec=null;
+  pSaveReplay(); renderReplay();
+}
+function renderReplay(){
+  const box=document.getElementById('pReplay'); if(!box) return;
+  if(!PZ.log.length){ box.innerHTML='<div class="note">仲未有紀錄。</div>'; return; }
+  const esc=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  box.innerHTML=PZ.log.map(R=>{
+    const mistakes=R.decisions.filter(d=>!d.ok).length+(R.ins&&!R.ins.ok?1:0);
+    const lost=R.decisions.reduce((a,d)=>a+(d.lossMoney||0),0)+(R.ins?R.ins.lossMoney||0:0);
+    const head='#'+R.n+'　'+(R.net>0?'+':'')+fmt(R.net)+'　'+(mistakes?'❌ '+mistakes+' 個失誤':'✅ 全對')+(R.csm?'　[CSM]':'');
+    const countLine='落注前：RC '+R.rc+' / TC '+R.tc.toFixed(1)+(R.guess?'　你估 RC '+esc(R.guess.rc)+' / TC '+esc(R.guess.tc)+(R.guess.ok?' ✅':' ❌'):'');
+    const betLine='注碼 '+fmt(R.bet)+'（下注表建議 '+fmt(R.suggested)+'）';
+    const decs=R.decisions.map(d=>'<div class="hline">'+esc(d.hand)+' vs '+esc(d.up)+'：你揀「'+d.chosen+'」'+(d.ok?' ✅':' ❌ 建議「'+d.rec+'」'+(d.lossUnit>0?'，代價 '+(d.lossUnit*100).toFixed(1)+'%注 ≈ '+fmt(d.lossMoney):''))+'</div>').join('');
+    const ins=R.ins?'<div class="hline">保險：你揀「'+R.ins.chosen+'」'+(R.ins.ok?' ✅':' ❌ 建議「'+R.ins.rec+'」')+(R.ins.lossMoney>0?'，代價 ≈ '+fmt(R.ins.lossMoney):'')+'</div>':'';
+    const hands=(R.hands||[]).map((h,i)=>'<div class="hline">'+(R.hands.length>1?'第'+(i+1)+'手 ':'')+'你：'+esc(h.cards)+'（'+(h.sur?'投降':h.total)+'）注 '+fmt(h.bet)+'</div>').join('');
+    return '<details style="margin:6px 0;border-top:1px solid var(--line);padding-top:6px"><summary style="cursor:pointer">'+head+'</summary>'+
+      '<div class="hline">'+countLine+'</div><div class="hline">'+betLine+'</div>'+ins+decs+hands+
+      '<div class="hline">莊家：'+esc(R.dealer||'')+'（'+(R.dealerTotal>21?'爆牌':R.dealerTotal)+'）</div>'+
+      (lost>0?'<div class="hline neg">呢手失誤總代價 ≈ '+fmt(lost)+'</div>':'')+'</details>';
+  }).join('');
+}
+
+function pCfg(){
+  return {
+    decks:+document.getElementById('decks').value,
+    pen:+document.getElementById('pen').value,
+    unit:+document.getElementById('unit').value,
+    soft17:document.getElementById('soft17').value,
+    das:document.getElementById('das').value==='yes',
+    maxHands:+document.getElementById('maxHands').value,
+    bjPayout:+document.getElementById('bjPayout').value,
+    weights:getWeights(),
+    compAmult:+document.getElementById('compAmult').value,
+    compBmult:+document.getElementById('compBmult').value,
+    useIndex:document.getElementById('useIndex').checked,
+    surrender:document.getElementById('surrender').value==='late',
+    csm:document.getElementById('shuffleMode').value==='csm'
+  };
+}
+function pDrawCard(silent){
+  const r = silent? drawSilent(PZ.shoe) : draw(PZ.shoe);
+  return {r, suit:['♠','♥','♦','♣'][(PZ.shoe.pos-1)%4]};
+}
+function pEnsureShoe(cfg){ if(!PZ.shoe || cfg.csm || needsReshuffle(PZ.shoe,cfg.pen/100)) PZ.shoe=newShoe(cfg.decks,cfg.weights); }
+
+function pAutoPlayHand(initCards,bet,dealerIdx,strategy,cfg){
+  let hands=[{cards:initCards.slice(),bet,doubled:false,splitAces:false}];
+  for(let hi=0; hi<hands.length; hi++){
+    let h=hands[hi];
+    while(true){
+      const canDouble = h.cards.length===2 && !h.splitAces && (hands.length===1 || cfg.das);
+      const canSplit = hands.length<cfg.maxHands && h.cards.length===2 && cardVal(h.cards[0].r)===cardVal(h.cards[1].r);
+      const canSur = hands.length===1 && h.cards.length===2;
+      const action=decide(h.cards.map(c=>c.r),dealerIdx,canDouble,canSplit,strategy,null,false,canSur,cfg.surrender);
+      if(action==='surrender'){ h.surrendered=true; break; }
+      if(action==='split' && canSplit){
+        const c1=h.cards[0], c2=h.cards[1];
+        h.cards=[c1,pDrawCard(false)]; h.splitAces=(c1.r==='A');
+        hands.push({cards:[c2,pDrawCard(false)],bet,doubled:false,splitAces:(c2.r==='A')});
+        continue;
+      }
+      if(action==='double' && canDouble){ h.cards.push(pDrawCard(false)); h.doubled=true; h.bet*=2; break; }
+      if(action==='hit'){ h.cards.push(pDrawCard(false)); if(h.splitAces || handInfo(h.cards.map(c=>c.r)).bust) break; continue; }
+      break;
+    }
+  }
+  return hands;
+}
+
+function pSubmitGuess(){
+  const cfg=pCfg();
+  pEnsureShoe(cfg);
+  PZ.cfg=cfg;
+  const decksRemaining=Math.max(0.5,(PZ.shoe.total-PZ.shoe.pos)/52);
+  const actualRC=PZ.shoe.rc, actualTC=actualRC/decksRemaining;
+  const guessRC=+document.getElementById('guessRC').value||0;
+  const guessTC=+document.getElementById('guessTC').value||0;
+  const rcOk=(guessRC===actualRC), tcOk=(Math.abs(guessTC-actualTC)<=0.5);
+  PZ.countTotal++; if(rcOk && tcOk) PZ.countCorrect++;
+  const isDeep = decksRemaining <= cfg.decks/2;
+  if(isDeep){ PZ.deepTotal++; if(rcOk&&tcOk) PZ.deepCorrect++; }
+  else { PZ.shallowTotal++; if(rcOk&&tcOk) PZ.shallowCorrect++; }
+  document.getElementById('guessFeedback').innerHTML=
+    (rcOk?'✅':'❌')+' RC 實際 '+actualRC+'（你估 '+guessRC+'）　'+
+    (tcOk?'✅':'❌')+' TC 實際 '+actualTC.toFixed(1)+'（你估 '+guessTC+'，容許±0.5）　'+
+    '（'+(isDeep?'深牌 剩'+decksRemaining.toFixed(1)+'副':'淺牌 剩'+decksRemaining.toFixed(1)+'副')+'）';
+  PZ.revealRC=actualRC; PZ.revealTC=actualTC;
+  PZ.lastGuess={rc:guessRC,tc:guessTC,ok:rcOk&&tcOk};
+  if(cfg.csm) document.getElementById('guessFeedback').innerHTML+='<br>CSM模式：每手重新洗牌，count永遠由0開始，估幾準都冇優勢。';
+  pSaveStats();
+  PZ.suggestedBet = cfg.unit*betForTrueCount(actualTC,readSpread());
+  document.getElementById('yourBetInput').value = PZ.suggestedBet;
+  document.getElementById('betSuggestNote').textContent = '你嘅下注表建議：'+fmt(PZ.suggestedBet)+'（基本注 '+cfg.unit+' × 對應倍數，跟返你啱先估嘅count自己判斷落幾多，唔一定要跟建議）。';
+  PZ.phase='bet';
+  pRender();
+}
+function pConfirmBet(){
+  const bet=Math.max(0,+document.getElementById('yourBetInput').value||0);
+  pNewHand(bet);
+}
+function pOnStartClick(){
+  if(PZ.phase==='guess'){ pSubmitGuess(); return; }
+  if(PZ.phase==='bet'){ pConfirmBet(); return; }
+  if(PZ.phase==='resolved'){
+    PZ.phase='guess'; PZ.outcome=''; PZ.botAOutcome=''; PZ.botBOutcome=''; PZ.lastFeedback='';
+    document.getElementById('guessFeedback').textContent='';
+    pRender();
+  }
+}
+function pNewHand(yourBet){
+  const cfg=PZ.cfg;
+  PZ.strategy=readStrategy(); PZ.spread=readSpread(); PZ.lastFeedback=''; PZ.outcome='';
+  PZ.botAOutcome=''; PZ.botBOutcome='';
+
+  const dUp=pDrawCard(false);
+  const you1=pDrawCard(false), a1=pDrawCard(false), b1=pDrawCard(false);
+  const you2=pDrawCard(false), a2=pDrawCard(false), b2=pDrawCard(false);
+  const hole=pDrawCard(true);
+  PZ.dealerUp=dUp; PZ.holeCard=hole; PZ.holeRevealed=false; PZ.dealerFinal=null;
+  PZ.dealerIdx=DEALER_COLS.indexOf(dUp.r==='A'?'A':(cardVal(dUp.r)===10?'10':String(cardVal(dUp.r))));
+  PZ.hands=[{cards:[you1,you2],bet:yourBet,doubled:false,splitAces:false,done:false}];
+  PZ.curIndex=0;
+  PZ.botAHands=pAutoPlayHand([a1,a2],cfg.unit*cfg.compAmult,PZ.dealerIdx,PZ.strategy,cfg);
+  PZ.botBHands=pAutoPlayHand([b1,b2],cfg.unit*cfg.compBmult,PZ.dealerIdx,PZ.strategy,cfg);
+  PZ.handNo=(PZ.handNo||0)+1;
+  PZ.curRec={n:PZ.handNo,rc:PZ.revealRC,tc:PZ.revealTC,guess:PZ.lastGuess,bet:yourBet,suggested:PZ.suggestedBet||yourBet,
+    up:dUp.r,bankStart:PZ.bank,decisions:[],ins:null,csm:!!cfg.csm};
+  if(dUp.r==='A'){ PZ.phase='insurance'; PZ.insFeedback=''; pRender(); return; }
+  PZ.phase='playing';
+  if(pCheckNatural()) return;
+  pRender();
+}
+function pCheckNatural(){
+  const h=PZ.hands[0];
+  if(PZ.hands.length===1 && h.cards.length===2 && handInfo(h.cards.map(c=>c.r)).total===21){
+    h.done=true; PZ.lastFeedback='天然21點！'; pResolve(); return true;
+  }
+  return false;
+}
+function pInsuranceChoice(buy){
+  const dealerBJ=handInfo([PZ.dealerUp.r,PZ.holeCard.r]).blackjack;
+  const rec = PZ.revealTC>=ILL18_INS_TC;
+  PZ.insTotal=(PZ.insTotal||0)+1; if(buy===rec) PZ.insCorrect=(PZ.insCorrect||0)+1;
+  const insBet=PZ.hands[0].bet/2;
+  const evBuy=insuranceEVUnit();
+  const insLoss = buy===rec ? 0 : Math.max(0, (rec?evBuy:0)-(buy?evBuy:0))*insBet;
+  if(buy!==rec){ logMistake('Insurance vs A', rec?'買保險':'唔買', insLoss/Math.max(1,PZ.hands[0].bet)); PZ.evLost+=insLoss; }
+  if(PZ.curRec) PZ.curRec.ins={chosen:buy?'買保險':'唔買',rec:rec?'買保險':'唔買',ok:buy===rec,lossMoney:insLoss};
+  let msg=(buy===rec?'✅ 正確 — ':'❌ 建議'+(rec?'買保險':'唔買')+' — ')+'你揀咗「'+(buy?'買保險':'唔買')+'」';
+  if(buy){
+    if(dealerBJ){ PZ.bank+=insBet*2; msg+='　莊家有牌，保險賠 +'+fmt(insBet*2); }
+    else { PZ.bank-=insBet; msg+='　莊家冇牌，保險輸 -'+fmt(insBet); }
+  }
+  PZ.lastFeedback=msg;
+  if(dealerBJ){
+    if(!PZ.holeRevealed){ revealHole(PZ.shoe,PZ.holeCard.r); PZ.holeRevealed=true; }
+    const settleVsDealerBJ=(hands)=>{ let lines=[],total=0; hands.forEach((h,i)=>{
+      const info=handInfo(h.cards.map(c=>c.r));
+      const natural=h.cards.length===2 && info.total===21 && hands.length===1;
+      const delta=natural?0:-h.bet; total+=delta;
+      lines.push((hands.length>1?'第'+(i+1)+'手 ':'')+(delta>0?'+':'')+fmt(delta));
+    }); return {lines,total}; };
+    const you=settleVsDealerBJ(PZ.hands); PZ.bank+=you.total;
+    const a=settleVsDealerBJ(PZ.botAHands); PZ.botA.bank+=a.total;
+    const b=settleVsDealerBJ(PZ.botBHands); PZ.botB.bank+=b.total;
+    PZ.outcome=you.lines.join('　'); PZ.botAOutcome=a.lines.join('　'); PZ.botBOutcome=b.lines.join('　');
+    PZ.dealerFinal=[PZ.dealerUp,PZ.holeCard];
+    PZ.phase='resolved';
+    pSaveStats();
+    pFinishRecord();
+  } else {
+    PZ.phase='playing';
+    if(pCheckNatural()) return;
+  }
+  pRender();
+}
+function pCurHand(){ return PZ.hands[PZ.curIndex]; }
+function situationKey(cards,dealerCol){
+  const isPair = cards.length===2 && cardVal(cards[0])===cardVal(cards[1]);
+  if(isPair){ const rank=cards[0]==='A'?'A':(cardVal(cards[0])===10?'10':String(cardVal(cards[0]))); return 'Pair '+rank+','+rank+' vs '+dealerCol; }
+  const info=handInfo(cards);
+  return (info.isSoft?'Soft ':'Hard ')+info.total+' vs '+dealerCol;
+}
+function logMistake(key,recLabel,lossUnit){
+  PZ.mistakes[key]=PZ.mistakes[key]||{count:0,rec:'',ev:0};
+  PZ.mistakes[key].count++; PZ.mistakes[key].rec=recLabel;
+  PZ.mistakes[key].ev=(PZ.mistakes[key].ev||0)+(lossUnit||0);
+}
+function renderMistakes(){
+  const entries=Object.entries(PZ.mistakes).sort((a,b)=>((b[1].ev||0)-(a[1].ev||0))||(b[1].count-a[1].count)).slice(0,10);
+  const el=document.getElementById('pMistakes');
+  if(!entries.length){ el.innerHTML='<div class="note">仲未有錯題紀錄——保持落去！</div>'; return; }
+  el.innerHTML='<div class="lbl2" style="margin-top:0">錯題記錄 Top '+entries.length+'（按累計代價排）</div>'+
+    entries.map(([k,v])=>{ const ev=v.ev||0; return '<div class="hline">'+k+' — 錯咗 '+v.count+' 次（正確：'+v.rec+'）'+
+      (ev>0?'　每次平均蝕 '+(ev/v.count*100).toFixed(1)+'%注，累計 '+ev.toFixed(2)+' 注':'')+'</div>'; }).join('');
+}
+function pAction(action){
+  if(PZ.phase!=='playing') return;
+  const h=pCurHand(); const ranks=h.cards.map(c=>c.r);
+  const canDouble = h.cards.length===2 && !h.splitAces && (PZ.hands.length===1 || PZ.cfg.das);
+  const canSplit = PZ.hands.length<PZ.cfg.maxHands && h.cards.length===2 && cardVal(h.cards[0].r)===cardVal(h.cards[1].r);
+  const canSur = PZ.hands.length===1 && h.cards.length===2;
+  const rec=decide(ranks,PZ.dealerIdx,canDouble,canSplit,PZ.strategy,PZ.revealTC,PZ.cfg.useIndex,canSur,PZ.cfg.surrender);
+  PZ.total++; if(action===rec) PZ.correct++;
+  const label={hit:'要牌',stand:'停牌',double:'加倍',split:'分牌',surrender:'投降'};
+  let lossUnit=0;
+  if(action!==rec){
+    try{
+      const ev=actionEVs(ranks,DEALER_COLS[PZ.dealerIdx],{h17:PZ.cfg.soft17==='H17',das:PZ.cfg.das,canDouble,canSplit,canSur:canSur&&PZ.cfg.surrender});
+      if(ev[action]!=null && ev[rec]!=null) lossUnit=Math.max(0,ev[rec]-ev[action]);
+    }catch(e){ lossUnit=0; }
+    logMistake(situationKey(ranks,DEALER_COLS[PZ.dealerIdx]), label[rec], lossUnit);
+    PZ.evLost+=lossUnit*h.bet;
+  }
+  if(PZ.curRec) PZ.curRec.decisions.push({hand:ranks.join(','),up:DEALER_COLS[PZ.dealerIdx],chosen:label[action],rec:label[rec],ok:action===rec,lossUnit,lossMoney:lossUnit*h.bet});
+  PZ.lastFeedback=(action===rec?'✅ 正確 — 你選了「':'❌ 建議是「'+label[rec]+'」— 你選了「')+label[action]+'」'+
+    (action!==rec?(lossUnit>0.0005?'　代價：每100注平均蝕 '+(lossUnit*100).toFixed(1)+'（呢手約 '+fmt(lossUnit*h.bet)+'）':'　（基本策略EV差距極細，可能係count偏離位）'):'');
+  if(action==='surrender' && canSur && PZ.cfg.surrender){ h.surrendered=true; h.done=true; pAdvance(); return; }
+  if(action==='split' && canSplit){
+    const c1=h.cards[0], c2=h.cards[1];
+    h.cards=[c1, pDrawCard(false)]; h.splitAces=(c1.r==='A');
+    PZ.hands.push({cards:[c2, pDrawCard(false)], bet:h.bet, doubled:false, splitAces:(c2.r==='A'), done:false});
+    pRender(); return;
+  }
+  if(action==='double' && canDouble){ h.cards.push(pDrawCard(false)); h.doubled=true; h.bet*=2; h.done=true; }
+  else if(action==='hit'){ h.cards.push(pDrawCard(false)); if(h.splitAces || handInfo(h.cards.map(c=>c.r)).bust) h.done=true; }
+  else if(action==='stand'){ h.done=true; }
+  else { pRender(); return; }
+  pAdvance();
+}
+function pAdvance(){
+  if(PZ.hands[PZ.curIndex] && !PZ.hands[PZ.curIndex].done){ pRender(); return; }
+  const next=PZ.hands.findIndex(h=>!h.done);
+  if(next>=0){ PZ.curIndex=next; pRender(); return; }
+  pResolve();
+}
+function pSettle(hands,onDelta){
+  let lines=[];
+  hands.forEach((h,i)=>{
+    onDelta(h,i,lines);
+  });
+  return lines;
+}
+function pResolve(){
+  if(!PZ.holeRevealed){ revealHole(PZ.shoe,PZ.holeCard.r); PZ.holeRevealed=true; }
+  let dealerCards=[PZ.dealerUp,PZ.holeCard];
+  const doneOrOut=h=>handInfo(h.cards.map(c=>c.r)).bust||h.surrendered;
+  const allBust = PZ.hands.every(doneOrOut) && PZ.botAHands.every(doneOrOut) && PZ.botBHands.every(doneOrOut);
+  if(!allBust){ while(dealerShouldHit(dealerCards.map(c=>c.r),{soft17:PZ.cfg.soft17})) dealerCards.push(pDrawCard(false)); }
+  PZ.dealerFinal=dealerCards;
+  const dFinal=handInfo(dealerCards.map(c=>c.r));
+  const dealerBJ = dealerCards.length===2 && dFinal.total===21;
+
+  function settleGroup(hands){
+    let lines=[]; let total=0;
+    hands.forEach((h,i)=>{
+      if(h.surrendered){ const delta=-h.bet/2; total+=delta; lines.push((hands.length>1?'第'+(i+1)+'手 ':'')+'投降 '+fmt(delta)); return; }
+      const info=handInfo(h.cards.map(c=>c.r));
+      const natural = h.cards.length===2 && info.total===21 && hands.length===1;
+      let delta;
+      if(info.bust) delta=-h.bet;
+      else if(natural && dealerBJ) delta=0;
+      else if(natural) delta=h.bet*PZ.cfg.bjPayout;
+      else if(dFinal.bust || info.total>dFinal.total) delta=h.bet;
+      else if(info.total===dFinal.total) delta=0;
+      else delta=-h.bet;
+      total+=delta;
+      lines.push((hands.length>1?'第'+(i+1)+'手 ':'')+(delta>0?'+':'')+fmt(delta));
+    });
+    return {lines,total};
+  }
+  const you=settleGroup(PZ.hands); PZ.bank+=you.total;
+  const a=settleGroup(PZ.botAHands); PZ.botA.bank+=a.total;
+  const b=settleGroup(PZ.botBHands); PZ.botB.bank+=b.total;
+  PZ.outcome=you.lines.join('　');
+  PZ.botAOutcome=a.lines.join('　');
+  PZ.botBOutcome=b.lines.join('　');
+  PZ.phase='resolved';
+  pSaveStats();
+  pFinishRecord();
+  pRender();
+}
+function pCardHtml(c,hidden){
+  if(hidden) return '<div class="pcard back">🂠</div>';
+  const red=(c.suit==='♥'||c.suit==='♦');
+  return '<div class="pcard'+(red?' red':'')+'">'+c.r+c.suit+'</div>';
+}
+function pBotSeatHtml(name,hands,outcome){
+  let html='<div class="seatrow"><div class="lbl">'+name+'（電腦）</div>';
+  hands.forEach(h=>{
+    const info=handInfo(h.cards.map(c=>c.r));
+    html+=h.cards.map(c=>pCardHtml(c,false)).join('')+
+      '<span class="hline" style="margin-right:14px">'+info.total+(info.bust?' 爆牌':'')+' 注'+fmt(h.bet)+'</span>';
+  });
+  if(outcome) html+='<div class="hline">'+outcome+'</div>';
+  html+='</div>';
+  return html;
+}
+function pRender(){
+  document.getElementById('pCount').textContent = (PZ.revealRC===null||PZ.phase==='guess')? '？' : 'RC '+PZ.revealRC+' / TC '+PZ.revealTC.toFixed(1);
+  document.getElementById('pBank').textContent=fmt(PZ.bank);
+  document.getElementById('pAcc').textContent= PZ.total? Math.round(PZ.correct/PZ.total*100)+'% ('+PZ.correct+'/'+PZ.total+')':'—';
+  document.getElementById('pCountAcc').textContent= PZ.countTotal? Math.round(PZ.countCorrect/PZ.countTotal*100)+'% ('+PZ.countCorrect+'/'+PZ.countTotal+')':'—';
+  document.getElementById('pInsAcc').textContent= PZ.insTotal? Math.round(PZ.insCorrect/PZ.insTotal*100)+'% ('+PZ.insCorrect+'/'+PZ.insTotal+')':'—';
+  document.getElementById('pDeepAcc').textContent= PZ.deepTotal? Math.round(PZ.deepCorrect/PZ.deepTotal*100)+'% ('+PZ.deepCorrect+'/'+PZ.deepTotal+')':'—';
+  document.getElementById('pEvLost').textContent= PZ.evLost>0? '≈ '+fmt(PZ.evLost) : (PZ.total?'0':'—');
+  document.getElementById('pShallowAcc').textContent= PZ.shallowTotal? Math.round(PZ.shallowCorrect/PZ.shallowTotal*100)+'% ('+PZ.shallowCorrect+'/'+PZ.shallowTotal+')':'—';
+  document.getElementById('pCompABank').textContent=fmt(PZ.botA.bank);
+  document.getElementById('pCompBBank').textContent=fmt(PZ.botB.bank);
+  document.getElementById('pGuess').style.display = (PZ.phase==='guess')?'block':'none';
+  document.getElementById('pBetPanel').style.display = (PZ.phase==='bet')?'block':'none';
+  document.getElementById('pStart').style.display = (PZ.phase==='playing'||PZ.phase==='insurance')?'none':'block';
+  document.getElementById('pStart').textContent =
+    PZ.phase==='resolved' ? '下一手（先估 count）' :
+    PZ.phase==='bet' ? '確認落注，開始' : '核對 count 並落注';
+
+  if(PZ.phase==='guess' || PZ.phase==='bet'){
+    document.getElementById('pSeat').innerHTML='';
+    document.getElementById('pFeedback').textContent='';
+    document.getElementById('pActions').innerHTML='';
+    renderMistakes();
+    return;
+  }
+
+  let html='';
+  html+='<div class="seatrow"><div class="lbl">莊家</div>'+pCardHtml(PZ.dealerUp,false)+pCardHtml(PZ.holeCard,!PZ.holeRevealed);
+  if(PZ.holeRevealed) html+='<div class="hline">'+handInfo((PZ.dealerFinal||[PZ.dealerUp,PZ.holeCard]).map(c=>c.r)).total+'</div>';
+  html+='</div>';
+  if(PZ.botAHands.length) html+=pBotSeatHtml('電腦A',PZ.botAHands,PZ.botAOutcome);
+  PZ.hands.forEach((h,i)=>{
+    const info=handInfo(h.cards.map(c=>c.r));
+    const isCur=(i===PZ.curIndex && PZ.phase==='playing');
+    html+='<div class="seatrow"><div class="lbl">你'+(PZ.hands.length>1?'（第'+(i+1)+'手）':'')+(isCur?' ← 目前':'')+'</div>'+
+      h.cards.map(c=>pCardHtml(c,false)).join('')+
+      '<div class="hline'+(isCur?' cur':'')+'">'+info.total+(info.isSoft?' (soft)':'')+(info.bust?' 爆牌':'')+'　下注 '+fmt(h.bet)+'</div></div>';
+  });
+  if(PZ.botBHands.length) html+=pBotSeatHtml('電腦B',PZ.botBHands,PZ.botBOutcome);
+  if(PZ.phase==='insurance') html+='<div class="outcome">莊家明牌係 A —— 買唔買保險？</div>';
+  if(PZ.outcome) html+='<div class="outcome">你：'+PZ.outcome+'</div>';
+  document.getElementById('pSeat').innerHTML=html;
+  document.getElementById('pFeedback').textContent=PZ.lastFeedback||'';
+  renderMistakes();
+
+  const h=PZ.phase==='playing'?pCurHand():null;
+  const canDouble = h && h.cards.length===2 && !h.splitAces && (PZ.hands.length===1 || PZ.cfg.das);
+  const canSplit = h && PZ.hands.length<PZ.cfg.maxHands && h.cards.length===2 && cardVal(h.cards[0].r)===cardVal(h.cards[1].r);
+  const canSur = h && PZ.hands.length===1 && h.cards.length===2 && PZ.cfg.surrender;
+  let abtns='';
+  if(PZ.phase==='insurance'){
+    abtns+='<button class="actbtn" data-ins="1">買保險</button>';
+    abtns+='<button class="actbtn" data-ins="0">唔買</button>';
+  } else if(PZ.phase==='playing'){
+    abtns+='<button class="actbtn" data-a="hit">要牌 Hit</button>';
+    abtns+='<button class="actbtn" data-a="stand">停牌 Stand</button>';
+    abtns+='<button class="actbtn" data-a="double"'+(canDouble?'':' disabled')+'>加倍 Double</button>';
+    abtns+='<button class="actbtn" data-a="split"'+(canSplit?'':' disabled')+'>分牌 Split</button>';
+    if(canSur) abtns+='<button class="actbtn" data-a="surrender">投降 Surrender</button>';
+  }
+  document.getElementById('pActions').innerHTML=abtns;
+  document.querySelectorAll('#pActions [data-a]').forEach(b=>{ b.addEventListener('click',()=>pAction(b.dataset.a)); });
+  document.querySelectorAll('#pActions [data-ins]').forEach(b=>{ b.addEventListener('click',()=>pInsuranceChoice(b.dataset.ins==='1')); });
+}
+document.getElementById('pStart').addEventListener('click',pOnStartClick);
+document.getElementById('pBankReset').addEventListener('click',()=>{
+  if(PZ.phase==='playing'||PZ.phase==='insurance'){ alert('請打完呢手先重設本金'); return; }
+  const amt=Math.max(1,+document.getElementById('pBankStart').value||1000);
+  PZ.bank=amt; PZ.botA.bank=amt; PZ.botB.bank=amt;
+  pSaveStats(); pRender();
+});
+document.getElementById('pReset').addEventListener('click',()=>{
+  if(!confirm('確定要清空所有訓練紀錄？')) return;
+  try{ localStorage.removeItem(PZ_STORE_KEY); }catch(e){}
+  Object.assign(PZ,{correct:0,total:0,bank:1000,countCorrect:0,countTotal:0,insCorrect:0,insTotal:0,
+    deepCorrect:0,deepTotal:0,shallowCorrect:0,shallowTotal:0,mistakes:{},evLost:0,log:[],handNo:0});
+  PZ.botA.bank=1000; PZ.botB.bank=1000;
+  try{ localStorage.removeItem(PZ_REPLAY_KEY); }catch(e){}
+  pRender(); renderReplay();
+});
+
+// ---- CSM toggle + shoe vs CSM comparison ----
+function updateCsmWarn(){ document.getElementById('csmWarn').style.display=document.getElementById('shuffleMode').value==='csm'?'block':'none'; }
+document.getElementById('shuffleMode').addEventListener('change',()=>{ updateCsmWarn(); PZ.shoe=null; });
+updateCsmWarn();
+function simCfgFromUI(){
+  return {
+    decks:+document.getElementById('decks').value, pen:+document.getElementById('pen').value,
+    unit:+document.getElementById('unit').value, bank:+document.getElementById('bank').value,
+    rounds:+document.getElementById('rounds').value, soft17:document.getElementById('soft17').value,
+    das:document.getElementById('das').value, maxHands:+document.getElementById('maxHands').value,
+    bjPayout:+document.getElementById('bjPayout').value, weights:getWeights(),
+    useIndex:document.getElementById('useIndex').checked, surrender:document.getElementById('surrender').value
+  };
+}
+document.getElementById('cmpBtn').addEventListener('click',()=>{
+  const btn=document.getElementById('cmpBtn');
+  btn.disabled=true; btn.textContent='對比緊…（會跑兩次模擬）';
+  setTimeout(()=>{
+    try{
+      const base=simCfgFromUI(), strategy=readStrategy(), spread=readSpread();
+      const numPaths=Math.max(1,Math.min(200,+document.getElementById('numPaths').value||30));
+      let shoeRes, csmRes;
+      runDistribution(Object.assign({},base,{csm:false}),strategy,spread,numPaths,r=>shoeRes=r);
+      runDistribution(Object.assign({},base,{csm:true}),strategy,spread,numPaths,r=>csmRes=r);
+      const edge=r=>r.avgWagered>0?((r.avgFinal-r.startBank)/r.avgWagered*100):0;
+      const cell=(l,v,cls)=>'<div class="stat"><div class="v '+(cls||'')+'">'+v+'</div><div class="l">'+l+'</div></div>';
+      const eS=edge(shoeRes), eC=edge(csmRes);
+      document.getElementById('cmpCard').style.display='block';
+      document.getElementById('cmpStats').innerHTML=
+        cell('牌靴：平均優勢',eS.toFixed(2)+'%',eS>=0?'pos':'neg')+
+        cell('CSM：平均優勢',eC.toFixed(2)+'%',eC>=0?'pos':'neg')+
+        cell('牌靴：平均最終本金',fmt(shoeRes.avgFinal),shoeRes.avgFinal>=shoeRes.startBank?'pos':'neg')+
+        cell('CSM：平均最終本金',fmt(csmRes.avgFinal),csmRes.avgFinal>=csmRes.startBank?'pos':'neg')+
+        cell('牌靴：賺錢路徑',shoeRes.profitablePct.toFixed(1)+'%')+
+        cell('CSM：賺錢路徑',csmRes.profitablePct.toFixed(1)+'%')+
+        cell('牌靴：平均總下注',fmt(shoeRes.avgWagered))+
+        cell('CSM：平均總下注',fmt(csmRes.avgWagered));
+      document.getElementById('cmpCard').scrollIntoView({behavior:'smooth',block:'start'});
+    } finally { btn.disabled=false; btn.textContent='牌靴 vs CSM 對比（同一套策略同下注表）'; }
+  },30);
+});
+
+// ---- Pure speed-counting drill ----
+const SD={cards:[],idx:0,timer:null,rc:0,running:false,correct:0,total:0,awaitingGuess:false};
+function sdBuildDeck(n){
+  let arr=[];
+  for(let d=0; d<n; d++) for(const r of RANKS) for(let k=0;k<4;k++) arr.push(r);
+  for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  return arr;
+}
+function sdTick(){
+  if(SD.idx>=SD.cards.length){ sdFinish(); return; }
+  const c=SD.cards[SD.idx]; SD.rc+=countVal(c,SD.weights); SD.idx++;
+  document.getElementById('sdCard').textContent=c;
+  document.getElementById('sdProgress').textContent='已出 '+SD.idx+' / '+SD.cards.length+' 張';
+}
+function sdFinish(){
+  clearInterval(SD.timer); SD.running=false;
+  const elapsed=((Date.now()-SD.startTime)/1000).toFixed(1);
+  document.getElementById('sdCard').textContent='✔';
+  document.getElementById('sdProgress').textContent='派晒！用咗 '+elapsed+' 秒';
+  document.getElementById('sdGuessRow').style.display='grid';
+  document.getElementById('sdStart').disabled=false; document.getElementById('sdStart').textContent='核對答案';
+  SD.awaitingGuess=true;
+}
+function sdStart(){
+  if(SD.running) return;
+  const n=+document.getElementById('sdDecks').value;
+  const speed=Math.max(100,+document.getElementById('sdSpeed').value);
+  SD.weights=getWeights();
+  SD.cards=sdBuildDeck(n); SD.idx=0; SD.rc=0; SD.running=true;
+  document.getElementById('sdGuessRow').style.display='none';
+  document.getElementById('sdFeedback').textContent='';
+  document.getElementById('sdStart').disabled=true; document.getElementById('sdStart').textContent='進行中…';
+  SD.startTime=Date.now();
+  SD.timer=setInterval(sdTick,speed);
+  sdTick();
+}
+function sdSubmitOrRestart(){
+  if(SD.awaitingGuess){
+    const guess=+document.getElementById('sdGuessRC').value||0;
+    const ok=(guess===SD.rc);
+    SD.total++; if(ok) SD.correct++;
+    document.getElementById('sdFeedback').innerHTML=(ok?'✅ 啱晒！':'❌ 唔啱')+' 實際RC = '+SD.rc+'（你答 '+guess+'）　準確率 '+Math.round(SD.correct/SD.total*100)+'% ('+SD.correct+'/'+SD.total+')';
+    SD.awaitingGuess=false;
+    document.getElementById('sdStart').textContent='再嚟一次';
+  } else {
+    sdStart();
+  }
+}
+document.getElementById('sdStart').addEventListener('click',sdSubmitOrRestart);
+
+// ---- Risk of Ruin calculator ----
+document.getElementById('rorCalc').addEventListener('click',()=>{
+  const edge=+document.getElementById('rorEdge').value/100;
+  const sd=+document.getElementById('rorSd').value;
+  const bank=+document.getElementById('rorBank').value;
+  const variance=sd*sd;
+  let ror;
+  if(edge<=0){ ror=1; } else { ror=Math.exp(-2*edge*bank/variance); }
+  const pct=Math.min(100,Math.max(0,ror*100));
+  const box=document.getElementById('rorStats');
+  box.style.display='grid';
+  box.innerHTML=[
+    ['破產機率', pct<0.01?'<0.01%':pct.toFixed(2)+'%', pct>20?'neg':'pos'],
+    ['本金／注碼', bank+' 單位', ''],
+    ['變異數', variance.toFixed(3), '']
+  ].map(([l,v,cls])=>'<div class="stat"><div class="v '+cls+'">'+v+'</div><div class="l">'+l+'</div></div>').join('');
+});
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+</script>
+</body>
+</html>

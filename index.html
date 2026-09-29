@@ -1240,7 +1240,10 @@ function startDaily(variant){
   PZ.phase='guess'; PZ.outcome=''; PZ.lastFeedback=''; PZ.justShuffled=false;
   document.getElementById('guessFeedback').textContent='';
   document.getElementById('dailyResult').innerHTML=''; delete document.getElementById('dailyResult').dataset.shown;
+  const lw=document.getElementById('lbWrap'); if(lw) lw.open=false;
   pRender();
+  toast('挑戰開始【'+V.name+'】','先估count，再落注');
+  setTimeout(()=>{ const t=document.querySelector('.dealerbar'); if(t&&t.scrollIntoView) t.scrollIntoView({behavior:'smooth',block:'start'}); },150);
 }
 function abortDaily(){ if(!PZ.daily) return; if(PZ.phase==='playing'||PZ.phase==='insurance'){ toast('請打完呢手先放棄'); return; } PZ.daily=null; PZ.shoe=null; PZ.phase='guess'; pRender(); }
 function dailyScore(recs){
@@ -1266,7 +1269,9 @@ function finishDaily(){
   unlock('daily_done'); if(r.score>=900) unlock('daily_900');
   if(VARIANT_IDS.every(v=>st[D.date][v]&&st[D.date][v].first!=null)) unlock('daily_all3');
   addXP(20);
-  setTimeout(()=>{ sfx.achieve(); },600);
+  setTimeout(()=>{ sfx.achieve(); toast('挑戰完成！'+r.score+' 分','成績喺每日挑戰上面');
+    const t=document.getElementById('dailyResult'); if(t&&t.scrollIntoView) t.scrollIntoView({behavior:'smooth',block:'center'}); },1200);
+  if(!lbOn()) setTimeout(()=>toast('想上排行榜？','喺排行榜打暱稱，剔「參加排行榜」，今日首次分數會補上傳'),3500);
   if(isFirst) lbQueue({kind:'daily',date:D.date,variant:D.variant,score:r.score,sa:r.sa,ca:r.ca,loss:r.loss});
   lbQueue({kind:'xp'});
   lbFlush();

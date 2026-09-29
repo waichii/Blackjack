@@ -1,0 +1,36 @@
+21點訓練 app：多人牌枱設定教學（約15分鐘，只需做一次）
+
+一、建立 Firebase 專案
+1. 去 https://console.firebase.google.com ，用 Google 帳戶登入
+2. 「建立專案」，名例如 blackjack-ken；Google Analytics 可以關閉
+3. 入到專案後，撳「</>」（網頁）新增應用程式，名隨意，唔使勾 Hosting
+4. 會見到一段 firebaseConfig，先放住唔好閂
+
+二、開啟匿名登入
+1. 左邊「Build（建構）」→「Authentication」→「開始使用」
+2. 「Sign-in method（登入方式）」→ 揀「匿名」→ 啟用 → 儲存
+3. 同一頁「Settings（設定）」→「Authorized domains（授權網域）」→ 新增你嘅 GitHub 網域，例如 你個名.github.io
+
+三、建立資料庫
+1. 左邊「Build」→「Realtime Database」→「建立資料庫」
+2. 地區揀「Singapore (asia-southeast1)」
+3. 揀「以鎖定模式啟動」
+4. 去「Rules（規則）」分頁，將 database.rules.json 成個內容貼入去覆蓋 → 發布
+
+四、填設定
+1. 返去「專案設定」（齒輪）→「一般」→ 下面你嘅網頁應用程式 → 複製 firebaseConfig
+2. 確認入面有 databaseURL（如果冇，建立完資料庫後重新整理再複製）
+3. 喺 GitHub repository 撳 firebase-config.js → 鉛筆圖示編輯
+4. 將 window.FIREBASE_CONFIG = null; 改成 window.FIREBASE_CONFIG = { …你複製嘅內容… };
+5. Commit changes
+
+五、上傳新版 app
+將 index.html、sw.js、firebase-config.js（如果未改好）上傳覆蓋舊檔。database.rules.json 同呢份教學唔使上傳（上傳咗都冇問題）。
+
+六、試玩
+1. iPhone 由主畫面開 app，開兩次等更新
+2. 撳頂部「多人牌枱（網上）」→ 開新枱
+3. 撳「邀請朋友」，send 俾朋友；朋友開網址 → 多人牌枱 → 輸入枱號 → 坐低
+
+有問題時：將「多人牌枱」頁面顯示嘅錯誤訊息截圖。
+常見：auth/operation-not-allowed = 未開匿名登入；auth/unauthorized-domain = 未加 GitHub 網域；PERMISSION_DENIED = 規則未發布。

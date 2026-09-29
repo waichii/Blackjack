@@ -12,6 +12,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<script src="firebase-config.js"></script>
 
 <style>
 :root{
@@ -81,14 +82,126 @@ canvas{width:100%;height:180px;display:block;margin-top:14px;border-radius:6px;b
   font-family:inherit;font-size:.8rem;cursor:pointer}
 .actbtn:disabled{opacity:.3;cursor:default}
 .outcome{font-size:.85rem;font-weight:600;margin-top:6px}
+/* dealer + dealing animation */
+.dealerbar{display:flex;align-items:flex-end;gap:10px;margin:0 0 14px;padding:10px;border-radius:10px;
+  background:radial-gradient(ellipse at 30% 0%,rgba(201,162,39,.10),transparent 70%),rgba(0,0,0,.18);border:1px solid var(--line)}
+.dealer-fig{flex:0 0 58px;width:58px;height:72px}
+.bubble{position:relative;background:var(--card);color:var(--ink);border-radius:10px;padding:7px 11px;font-size:.8rem;
+  line-height:1.45;max-width:100%;margin-bottom:14px;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.bubble::before{content:"";position:absolute;left:-7px;bottom:12px;border:7px solid transparent;border-right-color:var(--card);border-left:0}
+.bubblewrap{flex:1 1 auto;min-width:0}
+.shoebox{flex:0 0 52px;text-align:center}
+.shoe{position:relative;width:48px;height:34px;border-radius:5px 12px 5px 5px;background:#0f231d;border:1px solid var(--gold);overflow:hidden}
+.shoe .fill{position:absolute;left:0;bottom:0;width:100%;background:repeating-linear-gradient(0deg,#f1e8d6 0 2px,#d9cdb3 2px 3px)}
+.shoe .mouth{position:absolute;right:-1px;top:-1px;width:14px;height:14px;background:var(--gold);border-radius:0 11px 0 6px;opacity:.85}
+.shoebox .cap{font-size:.6rem;color:var(--muted);margin-top:3px}
+.pcard.deal{animation:dealIn var(--dur,.3s) cubic-bezier(.2,.7,.3,1) both;animation-delay:var(--delay,0s)}
+@keyframes dealIn{from{transform:translate(var(--fx,160px),var(--fy,-120px)) rotate(-28deg) scale(.55);opacity:0}
+  60%{opacity:1}to{transform:none;opacity:1}}
+.pcard.flip{animation:flipIn .45s ease-out both;animation-delay:var(--delay,0s)}
+@keyframes flipIn{0%{transform:perspective(300px) rotateY(90deg)}100%{transform:perspective(300px) rotateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.animating .hline,.animating .outcome{animation:fadeIn .25s ease-out both;animation-delay:var(--after,0s)}
+.bubble.later{animation:fadeIn .25s ease-out both;animation-delay:var(--after,0s)}
+.locked{pointer-events:none;opacity:.45;transition:opacity .2s}
+.heatrow{display:flex;align-items:center;gap:8px;margin:-6px 0 12px;font-size:.72rem;color:var(--muted)}
+.heatbar{flex:1;height:8px;border-radius:5px;background:rgba(0,0,0,.35);overflow:hidden;border:1px solid var(--line)}
+.heatbar .f{height:100%;width:0;transition:width .5s ease,background .5s ease}
+.pitsay{font-size:.74rem;color:#e0a24a;margin:-6px 0 12px;min-height:0}
+.combo{display:inline-block;margin-left:6px;color:var(--gold);font-weight:600}
+.combo.hot{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(1.5)}100%{transform:scale(1)}}
+.toastwrap{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:50;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.toast{background:var(--card);color:var(--ink);border:2px solid var(--gold);border-radius:12px;padding:9px 14px;font-size:.82rem;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);max-width:88vw;animation:toastIn .35s ease-out both}
+.toast b{display:block;font-size:.9rem}
+@keyframes toastIn{from{transform:translateY(-20px);opacity:0}to{transform:none;opacity:1}}
+.achgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-top:8px}
+.ach{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:.7rem;color:var(--muted);opacity:.55}
+.ach.on{opacity:1;color:var(--card);border-color:var(--gold)}
+.ach b{display:block;font-size:.75rem;color:inherit}
+.dailybox{border:1px dashed var(--gold);border-radius:10px;padding:10px;margin-bottom:14px;background:rgba(201,162,39,.06)}
+.dailybox .big{font-size:1.6rem;color:var(--gold);font-weight:700}
+.togglerow{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px;font-size:.75rem;color:var(--muted)}
+.togglerow label{display:flex;align-items:center;gap:6px;cursor:pointer;margin:0}
+.togglerow input{width:auto}
+@media (prefers-reduced-motion: reduce){.combo.hot,.toast{animation:none}}
+.modebar{display:flex;gap:6px;margin:0 0 16px;background:rgba(0,0,0,.2);padding:4px;border-radius:10px;border:1px solid var(--line)}
+.modebar button{flex:1;padding:9px 6px;border:none;border-radius:7px;background:transparent;color:var(--muted);font-family:inherit;font-size:.82rem;cursor:pointer}
+.modebar button.active{background:var(--gold);color:var(--ink);font-weight:600}
+body.mp .wrap > *:not(header):not(.modebar):not(#mpCard){display:none !important}
+body:not(.mp) #mpCard{display:none}
+.mpseats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.mpseat{border:1px solid var(--line);border-radius:10px;padding:8px;min-height:96px;background:rgba(0,0,0,.14)}
+.mpseat.turn{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+.mpwho{font-weight:600;font-size:.82rem;margin-bottom:2px}
+.mpcode{font-size:1.4rem;letter-spacing:.2em;color:var(--gold);font-weight:700}
+.hline.pos{color:#6fbf93}.hline.neg{color:#d0705f}
+#mpActions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+@media (prefers-reduced-motion: reduce){.pcard.deal,.pcard.flip,.animating .hline,.animating .outcome,.bubble.later{animation:none}}
 </style>
 </head>
 <body>
+<div class="toastwrap" id="toasts"></div>
 <div class="wrap">
 <header>
   <h1>21點策略 & 算牌下注模擬器</h1>
   <p>牌局規則、算牌系統全部可調，策略表可任意修改，然後模擬大量局數觀察期望值，或用「訓練模式」試玩單手練手感。</p>
 </header>
+<div class="modebar"><button data-m="solo" class="active">單人訓練・模擬</button><button data-m="mp">多人牌枱（網上）</button></div>
+<div class="card" id="mpCard">
+  <h2>多人牌枱 <span class="badge">最多4人・Firebase</span></h2>
+  <div id="mpSetup">
+    <div class="grid" style="max-width:420px">
+      <div><label>你嘅暱稱</label><input id="mpNick" maxlength="12" placeholder="例如：Ken"></div>
+      <div><label>枱號</label><input id="mpCodeIn" maxlength="4" placeholder="ABCD" style="text-transform:uppercase"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="actbtn" id="mpCreateBtn" style="background:var(--gold);color:var(--ink)">開新枱（我做荷官）</button>
+      <button class="actbtn" id="mpJoinBtn">用枱號加入</button>
+    </div>
+    <div class="note" id="mpStatus">朋友用同一個網址打開，輸入枱號就可以加入，唔使註冊。</div>
+    <details id="mpCfgBox" style="margin-top:10px">
+      <summary style="cursor:pointer;color:var(--gold)">Firebase 設定</summary>
+      <div class="note">將 Firebase console 入面「firebaseConfig」嗰段（包括 { } ）成段貼入嚟，儲存喺呢部機。更好嘅做法係填喺 firebase-config.js，朋友就唔使自己設定。</div>
+      <textarea id="mpCfgIn" rows="6" style="width:100%;background:var(--card);color:var(--ink);border:none;border-radius:5px;padding:8px;font-family:inherit;font-size:.75rem" placeholder="{ apiKey: &quot;...&quot;, databaseURL: &quot;...&quot;, ... }"></textarea>
+      <button class="actbtn" id="mpCfgSave" style="margin-top:6px">儲存設定</button>
+    </details>
+  </div>
+  <div id="mpTable" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div><span class="note" style="margin:0">枱號</span> <span class="mpcode" id="mpCodeOut"></span></div>
+      <div style="display:flex;gap:6px"><button class="actbtn" id="mpInviteBtn">邀請朋友</button><button class="actbtn" id="mpLeaveBtn">離枱</button></div>
+    </div>
+    <div class="note" id="mpHostLine"></div>
+    <div class="togglerow" style="margin-top:8px">
+      <label><input type="checkbox" id="mpShowCount">顯示count</label>
+      <label><input type="checkbox" id="mpHint">策略提示</label>
+      <label><input type="checkbox" id="mpGrade" checked>評分（計入你嘅訓練紀錄）</label>
+    </div>
+    <div class="note" id="mpCount" style="display:none;color:var(--gold)"></div>
+    <div class="dealerbar" style="display:block" id="mpDealer"></div>
+    <div class="note" id="mpMsg" style="text-align:center;margin:0 0 8px"></div>
+    <div class="mpseats" id="mpSeats"></div>
+    <div class="note" id="mpFeedback"></div>
+    <div id="mpActions"></div>
+    <div id="mpRules" class="card" style="display:none;background:rgba(0,0,0,.15);margin-top:10px">
+      <div class="lbl2" style="margin-top:0">枱面規則（荷官設定，下一局生效）</div>
+      <div class="grid">
+        <div><label>副數</label><input type="number" id="mrDecks" min="1" max="8"></div>
+        <div><label>剩幾多%洗牌</label><input type="number" id="mrPen" min="10" max="60"></div>
+        <div><label>莊家軟17</label><select id="mrH17" class="rulesel"><option value="0">停牌 S17</option><option value="1">要牌 H17</option></select></div>
+        <div><label>分牌後加倍</label><select id="mrDas" class="rulesel"><option value="1">允許</option><option value="0">不允許</option></select></div>
+        <div><label>投降</label><select id="mrSur" class="rulesel"><option value="0">無</option><option value="1">Late Surrender</option></select></div>
+        <div><label>天然21點</label><select id="mrBj" class="rulesel"><option value="1.5">3:2</option><option value="1.2">6:5</option></select></div>
+        <div><label>起始本金</label><input type="number" id="mrBank" min="10"></div>
+        <div><label>最低注</label><input type="number" id="mrMin" min="1"></div>
+      </div>
+      <button class="actbtn" id="mrSave" style="margin-top:8px">儲存規則</button>
+    </div>
+    <div class="note">多人模式用你「單人」頁面嘅策略表同下注表做提示同評分。荷官部機負責洗牌，未派嘅牌唔會上傳。</div>
+  </div>
+</div>
 
 <div class="card">
   <h2>牌局設定</h2>
@@ -179,6 +292,8 @@ canvas{width:100%;height:180px;display:block;margin-top:14px;border-radius:6px;b
     <div><label>電腦玩家B 注碼(×基本注)</label><input type="number" id="compBmult" value="1" min="0" step="0.5"></div>
   </div>
   <div class="stats" style="margin-top:0;margin-bottom:14px">
+    <div class="stat"><div class="v" id="pLevel">Lv1</div><div class="l" id="pLevelSub">新手</div></div>
+    <div class="stat"><div class="v" id="pComboV">0</div><div class="l" id="pComboSub">連續全對（最高 0）</div></div>
     <div class="stat"><div class="v" id="pAcc">—</div><div class="l">策略正確率</div></div>
     <div class="stat"><div class="v" id="pEvLost">—</div><div class="l">累計失誤代價（期望值）</div></div>
     <div class="stat"><div class="v" id="pBank">1000</div><div class="l">你的訓練本金</div></div>
@@ -190,6 +305,39 @@ canvas{width:100%;height:180px;display:block;margin-top:14px;border-radius:6px;b
     <div class="stat"><div class="v" id="pDeepAcc">—</div><div class="l">深牌(剩≤半鞋)算牌準</div></div>
     <div class="stat"><div class="v" id="pShallowAcc">—</div><div class="l">淺牌(剩>半鞋)算牌準</div></div>
   </div>
+  <div class="dailybox">
+    <div class="row" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="actbtn" id="dailyBtn">📅 開始今日挑戰</button>
+      <span class="note" id="dailyStatus" style="margin:0">每日一條固定牌靴，打20手，按策略、算牌同失誤代價計分，可以同朋友比。</span>
+    </div>
+    <div id="dailyResult"></div>
+  </div>
+  <div class="togglerow">
+    <label><input type="checkbox" id="pHeatOn" checked>巡場監察</label>
+    <label><input type="checkbox" id="pSoundOn" checked>音效</label>
+  </div>
+  <div class="grid" style="margin-bottom:12px;max-width:220px">
+    <div><label>荷官發牌速度</label><select id="pDealSpeed" class="rulesel">
+      <option value="0.12">快</option><option value="0.25" selected>正常</option><option value="0.45">慢</option><option value="0">唔要動畫</option>
+    </select></div>
+  </div>
+  <div class="dealerbar">
+    <svg class="dealer-fig" viewBox="0 0 58 72" aria-hidden="true">
+      <path d="M6 72 C6 52 16 44 29 44 C42 44 52 52 52 72 Z" fill="#101a16"/>
+      <path d="M22 45 L29 60 L36 45 Z" fill="#f1e8d6"/>
+      <path d="M24 49 L29 52 L34 49 L34 55 L29 52 L24 55 Z" fill="#b3503f"/>
+      <path d="M14 72 L22 46 L29 62 L36 46 L44 72 Z" fill="#1d3f36" opacity=".95"/>
+      <circle cx="29" cy="26" r="13" fill="#e8c9a4"/>
+      <path d="M16 24 C16 12 42 10 42 24 C39 17 33 15 29 15 C24 15 19 17 16 24 Z" fill="#2a1d14"/>
+      <circle cx="24.5" cy="27" r="1.4" fill="#2a1d14"/><circle cx="33.5" cy="27" r="1.4" fill="#2a1d14"/>
+      <path d="M25 33 Q29 35.5 33 33" stroke="#8a5a44" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      <rect x="24" y="38" width="10" height="7" fill="#e8c9a4"/>
+    </svg>
+    <div class="bubblewrap"><div class="bubble" id="dealerSay">歡迎！先估下count，再落注。</div></div>
+    <div class="shoebox"><div class="shoe"><div class="fill" id="shoeFill" style="height:100%"></div><div class="mouth"></div></div><div class="cap">牌靴</div></div>
+  </div>
+  <div class="heatrow" id="heatRow"><span>🕵️ 巡場熱度</span><div class="heatbar"><div class="f" id="heatFill"></div></div><span id="heatNum">0</span></div>
+  <div class="pitsay" id="pitSay"></div>
   <div id="pGuess" class="card" style="background:rgba(0,0,0,.15);margin-bottom:14px">
     <div class="lbl2" style="margin-top:0">落注前，先估返呢鋪開始前嘅 count</div>
     <div class="grid" style="max-width:360px">
@@ -215,6 +363,10 @@ canvas{width:100%;height:180px;display:block;margin-top:14px;border-radius:6px;b
     <button class="actbtn" id="pBankReset">重設本金（保留正確率）</button>
   </div>
   <button class="actbtn" id="pReset" style="margin-top:10px">重設全部訓練紀錄</button>
+  <details id="pAchWrap" style="margin-top:14px">
+    <summary style="cursor:pointer;color:var(--gold)" id="pAchSummary">成就</summary>
+    <div class="achgrid" id="pAch"></div>
+  </details>
   <details id="pReplayWrap" style="margin-top:14px">
     <summary style="cursor:pointer;color:var(--gold)">牌局回放（最近30手）</summary>
     <div class="note">每手記低落注前count、你嘅估計、注碼、每個決定同建議、失誤代價同結果。撳任何一手展開。</div>
@@ -558,10 +710,11 @@ const RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
 function cardVal(r){ if(r==='J'||r==='Q'||r==='K') return 10; if(r==='A') return 11; return +r; }
 function countVal(r,weights){ return (weights||COUNT_SYSTEMS.hilo)[rankGroup(r)]; }
 
-function newShoe(decks,weights){
+function newShoe(decks,weights,rng){
+  const R=rng||Math.random;
   const cards=[];
   for(let d=0; d<decks; d++) for(const r of RANKS) for(let k=0;k<4;k++) cards.push(r);
-  for(let i=cards.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [cards[i],cards[j]]=[cards[j],cards[i]]; }
+  for(let i=cards.length-1;i>0;i--){ const j=Math.floor(R()*(i+1)); [cards[i],cards[j]]=[cards[j],cards[i]]; }
   return {cards, pos:0, total:cards.length, rc:0, weights:weights||COUNT_SYSTEMS.hilo};
 }
 function draw(shoe){ const c=shoe.cards[shoe.pos++]; shoe.rc+=countVal(c,shoe.weights); return c; }
@@ -850,7 +1003,8 @@ function pSaveStats(){
     const data={correct:PZ.correct,total:PZ.total,bank:PZ.bank,botABank:PZ.botA.bank,botBBank:PZ.botB.bank,
       countCorrect:PZ.countCorrect,countTotal:PZ.countTotal,insCorrect:PZ.insCorrect,insTotal:PZ.insTotal,
       deepCorrect:PZ.deepCorrect,deepTotal:PZ.deepTotal,shallowCorrect:PZ.shallowCorrect,shallowTotal:PZ.shallowTotal,
-      mistakes:PZ.mistakes,evLost:PZ.evLost,handNo:PZ.handNo};
+      mistakes:PZ.mistakes,evLost:PZ.evLost,handNo:PZ.handNo,
+      xp:PZ.xp||0,ach:PZ.ach||{},bestCombo:PZ.bestCombo||0,barredCount:PZ.barredCount||0,heat:PZ.heat||0};
     localStorage.setItem(PZ_STORE_KEY,JSON.stringify(data));
   }catch(e){ /* storage unavailable — training just won't persist across sessions */ }
 }
@@ -866,13 +1020,10 @@ function pLoadStats(){
       shallowCorrect:d.shallowCorrect||0,shallowTotal:d.shallowTotal||0});
     PZ.mistakes=d.mistakes||{};
     PZ.evLost=d.evLost||0; PZ.handNo=d.handNo||0;
+    PZ.xp=d.xp||0; PZ.ach=d.ach||{}; PZ.bestCombo=d.bestCombo||0; PZ.barredCount=d.barredCount||0; PZ.heat=d.heat||0;
     PZ.botA.bank=d.botABank??1000; PZ.botB.bank=d.botBBank??1000;
   }catch(e){ /* ignore corrupt/unavailable storage */ }
 }
-pLoadStats();
-pLoadReplay();
-pRender();
-renderReplay();
 
 // ---- EV cost of decisions (infinite-deck model, basic-strategy EV, count ignored) ----
 const EV_CACHE={};
@@ -905,7 +1056,12 @@ function pFinishRecord(){
   R.dealerTotal=handInfo((PZ.dealerFinal||[PZ.dealerUp,PZ.holeCard]).map(c=>c.r)).total;
   R.hands=PZ.hands.map(h=>({cards:cardsStr(h.cards),total:handInfo(h.cards.map(c=>c.r)).total,bet:h.bet,sur:!!h.surrendered}));
   R.net=PZ.bank-R.bankStart;
+  R.daily=PZ.daily?PZ.daily.id:null;
   PZ.log.unshift(R); PZ.log=PZ.log.slice(0,30); PZ.curRec=null;
+  addXP(1);
+  unlock('first_hand'); if(PZ.handNo>=100) unlock('hands_100'); if(PZ.handNo>=500) unlock('hands_500');
+  PZ.pendingResult=R.net;
+  if(PZ.daily){ PZ.daily.hand++; if(PZ.daily.hand>=PZ.daily.total) finishDaily(); }
   pSaveReplay(); renderReplay();
 }
 function renderReplay(){
@@ -928,6 +1084,189 @@ function renderReplay(){
   }).join('');
 }
 
+// ================= Fun: levels, achievements, pit boss, daily, sound =================
+const LEVELS=[[0,'新手'],[50,'見習生'],[150,'熟手'],[300,'基本策略通'],[600,'算牌學徒'],[1000,'算牌員'],[1600,'高級算牌員'],[2500,'職業玩家'],[4000,'算牌大師']];
+function levelOf(xp){ let i=0; while(i+1<LEVELS.length && xp>=LEVELS[i+1][0]) i++; return i; }
+function addXP(n){
+  const before=levelOf(PZ.xp||0); PZ.xp=(PZ.xp||0)+n; const after=levelOf(PZ.xp);
+  if(after>before){ toast('升級！Lv'+(after+1)+' '+LEVELS[after][1],'繼續保持'); sfx.achieve(); vib([30,40,30]); }
+}
+const ACHS=[
+  ['first_hand','第一手','打完第一手'],['hands_100','百戰','累計打完100手'],['hands_500','牌桌常客','累計打完500手'],
+  ['combo_25','穩陣','連續25個決定全對'],['combo_50','冷靜','連續50個決定全對'],['combo_100','人肉策略表','連續100個決定全對'],
+  ['count_10','心算機器','連續10次count估啱'],['deep_5','深牌殺手','深牌時連續5次count估啱'],
+  ['ins_right','識揀保險','count夠高時正確買保險'],['blackjack','Blackjack!','拎到天然21點'],
+  ['daily_done','每日一練','完成一次每日挑戰'],['daily_900','挑戰高手','每日挑戰900分或以上'],
+  ['stealth','低調大師','一鞋之內落過5倍或以上基本注，巡場熱度都未超過40'],['barred','請你離場','第一次被巡場請走']
+];
+function unlock(id){
+  PZ.ach=PZ.ach||{}; if(PZ.ach[id]) return;
+  const a=ACHS.find(x=>x[0]===id); if(!a) return;
+  PZ.ach[id]=new Date().toISOString().slice(0,10);
+  toast('🏆 成就解鎖：'+a[1],a[2]); sfx.achieve(); vib([20,30,20]);
+  renderAch();
+}
+function renderAch(){
+  const got=Object.keys(PZ.ach||{}).length;
+  document.getElementById('pAchSummary').textContent='成就（'+got+' / '+ACHS.length+'）';
+  const g=document.getElementById('pAch'); g.innerHTML='';
+  ACHS.forEach(([id,name,desc])=>{ const on=!!(PZ.ach&&PZ.ach[id]); const d=document.createElement('div'); d.className='ach'+(on?' on':'');
+    const b=document.createElement('b'); b.textContent=(on?'🏆 ':'🔒 ')+name; d.appendChild(b); d.appendChild(document.createTextNode(desc)); g.appendChild(d); });
+}
+function toast(title,body){
+  const w=document.getElementById('toasts'); if(!w) return;
+  const t=document.createElement('div'); t.className='toast';
+  const b=document.createElement('b'); b.textContent=title; t.appendChild(b); if(body) t.appendChild(document.createTextNode(body));
+  w.appendChild(t); setTimeout(()=>t.remove(),2800);
+}
+// ---- pit boss heat ----
+function pitBossReact(bet){
+  PZ.heatOn=document.getElementById('pHeatOn').checked;
+  if(!PZ.heatOn || PZ.daily){ PZ.lastBet=bet; return false; }
+  const unit=Math.max(1,PZ.cfg.unit), tc=PZ.revealTC||0, ratio=bet/unit, last=PZ.lastBet||unit;
+  let d=-2;
+  const jump=bet/Math.max(1,last);
+  if(jump>=5) d+=16; else if(jump>=3) d+=9; else if(jump>=2) d+=4;
+  if(tc>=2 && ratio>=3) d+=Math.min(14,(ratio-2)*2+tc);
+  if(tc<=-1 && ratio>=3) d-=6;
+  if(tc>=2 && ratio<=1.5) d-=2;
+  if(PZ.justShuffled && ratio<=1.5 && last/unit>=3) d+=6;
+  PZ.heat=Math.max(0,Math.min(100,(PZ.heat||0)+d));
+  PZ.lastBet=bet;
+  PZ.shoeMaxRatio=Math.max(PZ.shoeMaxRatio||0,ratio); PZ.shoeMaxHeat=Math.max(PZ.shoeMaxHeat||0,PZ.heat);
+  if(PZ.heat>=60 && (PZ.heat-d)<60){ sfx.warn(); vib(60); }
+  return PZ.heat>=100;
+}
+function endOfShoeCheck(){
+  if(document.getElementById('pHeatOn').checked && !PZ.daily && (PZ.shoeMaxRatio||0)>=5 && (PZ.shoeMaxHeat||0)<=40) unlock('stealth');
+  PZ.shoeMaxRatio=0; PZ.shoeMaxHeat=0;
+}
+function pitLine(){
+  const h=PZ.heat||0;
+  if(PZ.phase==='barred') return '巡場：「先生，今晚你可以玩其他遊戲，但21點我哋就唔再招待。」';
+  if(!document.getElementById('pHeatOn').checked || PZ.daily) return '';
+  if(h>=85) return '巡場拎起對講機，望住你講緊嘢……';
+  if(h>=60) return '巡場企咗喺你後面，睇住你每一注。';
+  if(h>=30) return '巡場行過嚟望咗你一眼。';
+  return '';
+}
+function renderFun(){
+  const lv=levelOf(PZ.xp||0), next=LEVELS[lv+1];
+  document.getElementById('pLevel').textContent='Lv'+(lv+1);
+  document.getElementById('pLevelSub').textContent=LEVELS[lv][1]+(next?'（'+(PZ.xp||0)+' / '+next[0]+' XP）':'（滿級）');
+  const cv=document.getElementById('pComboV'); cv.textContent=(PZ.combo||0)>=5?'🔥 '+PZ.combo:String(PZ.combo||0);
+  if(PZ.comboPop){ cv.classList.remove('hot'); void cv.offsetWidth; cv.classList.add('hot'); PZ.comboPop=false; }
+  document.getElementById('pComboSub').textContent='連續全對（最高 '+(PZ.bestCombo||0)+'）';
+  const on=document.getElementById('pHeatOn').checked && !PZ.daily;
+  document.getElementById('heatRow').style.display=on?'flex':'none';
+  const h=PZ.heat||0, f=document.getElementById('heatFill');
+  f.style.width=h+'%'; f.style.background=h>=60?'#d0705f':(h>=30?'#e0a24a':'#6fbf93');
+  document.getElementById('heatNum').textContent=Math.round(h);
+  const ps=document.getElementById('pitSay'); const pl=pitLine(); ps.textContent=pl; ps.style.display=pl?'block':'none';
+  renderDaily();
+}
+// ---- daily challenge ----
+function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function hashStr(str){ let h=1779033703^str.length; for(let i=0;i<str.length;i++){ h=Math.imul(h^str.charCodeAt(i),3432918353); h=h<<13|h>>>19; } return h>>>0; }
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const DAILY_KEY='bj_daily_v1';
+function dailyStore(){ try{ return JSON.parse(localStorage.getItem(DAILY_KEY)||'{}'); }catch(e){ return {}; } }
+function dailySave(o){ try{ localStorage.setItem(DAILY_KEY,JSON.stringify(o)); }catch(e){} }
+function startDaily(){
+  if(PZ.phase==='playing'||PZ.phase==='insurance'||PZ.phase==='bet'){ toast('請打完呢手先開始挑戰'); return; }
+  const date=todayStr(), st=dailyStore(), rec=st[date]||{attempts:0};
+  rec.attempts++; st[date]=rec; dailySave(st);
+  PZ.daily={date,id:date+'#'+rec.attempts,attempt:rec.attempts,hand:0,total:20,rng:mulberry32(hashStr('bj-daily-'+date))};
+  PZ.shoe=null; PZ.cfg=pCfg(); PZ.shoe=newShoe(6,COUNT_SYSTEMS.hilo,PZ.daily.rng);
+  PZ.phase='guess'; PZ.outcome=''; PZ.lastFeedback=''; PZ.justShuffled=false;
+  document.getElementById('guessFeedback').textContent='';
+  document.getElementById('dailyResult').innerHTML='';
+  pRender();
+}
+function abortDaily(){ if(!PZ.daily) return; if(PZ.phase==='playing'||PZ.phase==='insurance'){ toast('請打完呢手先放棄'); return; } PZ.daily=null; PZ.shoe=null; PZ.phase='guess'; pRender(); }
+function dailyScore(recs){
+  let dec=0,ok=0,loss=0,cg=0,cok=0;
+  recs.forEach(R=>{
+    R.decisions.forEach(d=>{ dec++; if(d.ok) ok++; loss+=d.lossUnit||0; });
+    if(R.ins){ dec++; if(R.ins.ok) ok++; loss+=(R.ins.lossMoney||0)/Math.max(1,R.bet); }
+    if(R.guess){ cg++; if(R.guess.ok) cok++; }
+  });
+  const sa=dec?ok/dec:1, ca=cg?cok/cg:0;
+  const score=Math.round(400*sa+400*ca+200*Math.max(0,1-loss/2));
+  return {score,sa,ca,loss,dec,cg};
+}
+function finishDaily(){
+  const D=PZ.daily; const recs=PZ.log.filter(R=>R.daily===D.id);
+  const r=dailyScore(recs);
+  const st=dailyStore(), rec=st[D.date]||{attempts:D.attempt};
+  if(rec.first==null) rec.first=r.score;
+  rec.best=Math.max(rec.best||0,r.score); st[D.date]=rec; dailySave(st);
+  PZ.lastDaily={date:D.date,attempt:D.attempt,first:rec.first,best:rec.best,...r};
+  PZ.daily=null; PZ.shoe=null;
+  unlock('daily_done'); if(r.score>=900) unlock('daily_900');
+  addXP(20);
+  setTimeout(()=>{ sfx.achieve(); },600);
+}
+function dailyShareText(L){
+  return '21點每日挑戰 '+L.date+'\n分數 '+L.score+' / 1000'+(L.attempt>1?'（第'+L.attempt+'次，首次 '+L.first+'）':'')+
+    '\n策略 '+Math.round(L.sa*100)+'%｜算牌 '+Math.round(L.ca*100)+'%｜失誤代價 '+L.loss.toFixed(2)+' 注';
+}
+async function shareDaily(){
+  const txt=dailyShareText(PZ.lastDaily);
+  try{ if(navigator.share){ await navigator.share({text:txt}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
+  try{ await navigator.clipboard.writeText(txt); toast('已複製','貼俾朋友比拼啦'); }catch(e){ toast('複製唔到','請手動揀選文字複製'); }
+}
+function renderDaily(){
+  const btn=document.getElementById('dailyBtn'), stEl=document.getElementById('dailyStatus'), res=document.getElementById('dailyResult');
+  const date=todayStr(), rec=dailyStore()[date];
+  if(PZ.daily){
+    btn.textContent='放棄挑戰'; btn.onclick=abortDaily;
+    stEl.textContent='今日挑戰 '+PZ.daily.date+'：第 '+Math.min(PZ.daily.hand+1,PZ.daily.total)+' / '+PZ.daily.total+' 手。固定規則：6副、S17、DAS、無投降、3:2，按基本策略評分，巡場唔會出現。';
+  }else{
+    btn.textContent=rec&&rec.attempts?'📅 再挑戰一次':'📅 開始今日挑戰'; btn.onclick=startDaily;
+    stEl.textContent=rec&&rec.first!=null?'今日首次分數 '+rec.first+'，最佳 '+rec.best+'。朋友同一日會打到同一條牌靴。':'每日一條固定牌靴，打20手，按策略、算牌同失誤代價計分，可以同朋友比。';
+  }
+  if(PZ.lastDaily && !PZ.daily && !res.dataset.shown){
+    const L=PZ.lastDaily;
+    res.innerHTML='<div style="margin-top:10px"><div class="big">'+L.score+' 分</div><div class="note" style="white-space:pre-line">'+
+      dailyShareText(L).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</div>'+
+      '<button class="actbtn" id="dailyShareBtn" style="margin-top:8px">分享成績</button></div>';
+    document.getElementById('dailyShareBtn').onclick=shareDaily;
+    res.dataset.shown='1';
+  }
+  if(PZ.daily) res.dataset.shown='';
+}
+// ---- sound & haptics (Web Audio, synthesized; no files) ----
+let AC=null;
+function audioUnlock(){ try{ if(!AC){ const C=window.AudioContext||window.webkitAudioContext; if(C) AC=new C(); } if(AC&&AC.state==='suspended') AC.resume(); }catch(e){} }
+document.addEventListener('pointerdown',audioUnlock,{once:true});
+function soundOn(){ const e=document.getElementById('pSoundOn'); return e?e.checked:false; }
+function tone(freq,dur,when,type,vol){
+  if(!AC||!soundOn()) return;
+  const t=AC.currentTime+(when||0), o=AC.createOscillator(), g=AC.createGain();
+  o.type=type||'sine'; o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.15,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g).connect(AC.destination); o.start(t); o.stop(t+dur+0.02);
+}
+function noise(dur,when,vol,hp){
+  if(!AC||!soundOn()) return;
+  const t=AC.currentTime+(when||0), n=Math.floor(AC.sampleRate*dur), buf=AC.createBuffer(1,n,AC.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
+  const src=AC.createBufferSource(); src.buffer=buf; const f=AC.createBiquadFilter(); f.type='highpass'; f.frequency.value=hp||2000;
+  const g=AC.createGain(); g.gain.value=vol||0.25; src.connect(f).connect(g).connect(AC.destination); src.start(t);
+}
+const sfx={
+  card:w=>noise(0.06,w,0.22,2500),
+  flip:w=>{ noise(0.05,w,0.18,1800); noise(0.05,(w||0)+0.12,0.18,2200); },
+  chip:()=>{ tone(2200,0.07,0,'triangle',0.08); tone(2900,0.08,0.05,'triangle',0.06); },
+  win:w=>{ [523,659,784].forEach((f,i)=>tone(f,0.18,(w||0)+i*0.09,'triangle',0.12)); },
+  lose:w=>{ tone(196,0.25,w,'sine',0.14); tone(147,0.3,(w||0)+0.12,'sine',0.12); },
+  push:w=>tone(440,0.15,w,'sine',0.08),
+  achieve:()=>{ [659,784,988,1319].forEach((f,i)=>tone(f,0.2,i*0.08,'triangle',0.1)); },
+  warn:()=>{ tone(330,0.18,0,'square',0.05); tone(262,0.25,0.18,'square',0.05); }
+};
+function vib(p){ try{ if(soundOn() && navigator.vibrate) navigator.vibrate(p); }catch(e){} }
+
 function pCfg(){
   return {
     decks:+document.getElementById('decks').value,
@@ -945,11 +1284,30 @@ function pCfg(){
     csm:document.getElementById('shuffleMode').value==='csm'
   };
 }
+const _pCfgUI=pCfg;
+pCfg=function(){
+  const c=_pCfgUI();
+  if(PZ.daily) Object.assign(c,{decks:6,pen:25,soft17:'S17',das:true,maxHands:4,bjPayout:1.5,surrender:false,csm:false,
+    useIndex:false,weights:COUNT_SYSTEMS.hilo,compAmult:2,compBmult:1});
+  return c;
+};
+function defaultStrategy(){
+  const conv=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,v.split(' ')]));
+  return {hard:conv(hardDefault),soft:conv(softDefault),pair:conv(pairDefault)};
+}
 function pDrawCard(silent){
   const r = silent? drawSilent(PZ.shoe) : draw(PZ.shoe);
-  return {r, suit:['♠','♥','♦','♣'][(PZ.shoe.pos-1)%4]};
+  PZ.cardSeq=(PZ.cardSeq||0)+1;
+  return {r, suit:['♠','♥','♦','♣'][(PZ.shoe.pos-1)%4], id:PZ.cardSeq};
 }
-function pEnsureShoe(cfg){ if(!PZ.shoe || cfg.csm || needsReshuffle(PZ.shoe,cfg.pen/100)) PZ.shoe=newShoe(cfg.decks,cfg.weights); }
+function pEnsureShoe(cfg){
+  PZ.justShuffled=false;
+  if(!PZ.shoe || cfg.csm || needsReshuffle(PZ.shoe,cfg.pen/100)){
+    PZ.justShuffled=!!PZ.shoe && !cfg.csm;
+    if(PZ.justShuffled) endOfShoeCheck();
+    PZ.shoe=newShoe(cfg.decks,cfg.weights,PZ.daily?PZ.daily.rng:undefined);
+  }
+}
 
 function pAutoPlayHand(initCards,bet,dealerIdx,strategy,cfg){
   let hands=[{cards:initCards.slice(),bet,doubled:false,splitAces:false}];
@@ -985,6 +1343,9 @@ function pSubmitGuess(){
   const guessTC=+document.getElementById('guessTC').value||0;
   const rcOk=(guessRC===actualRC), tcOk=(Math.abs(guessTC-actualTC)<=0.5);
   PZ.countTotal++; if(rcOk && tcOk) PZ.countCorrect++;
+  if(rcOk&&tcOk){ PZ.countStreak=(PZ.countStreak||0)+1; addXP(2); } else PZ.countStreak=0;
+  if(PZ.countStreak>=10) unlock('count_10');
+  if(decksRemaining <= cfg.decks/2){ if(rcOk&&tcOk){ PZ.deepStreak=(PZ.deepStreak||0)+1; if(PZ.deepStreak>=5) unlock('deep_5'); } else PZ.deepStreak=0; }
   const isDeep = decksRemaining <= cfg.decks/2;
   if(isDeep){ PZ.deepTotal++; if(rcOk&&tcOk) PZ.deepCorrect++; }
   else { PZ.shallowTotal++; if(rcOk&&tcOk) PZ.shallowCorrect++; }
@@ -1004,9 +1365,20 @@ function pSubmitGuess(){
 }
 function pConfirmBet(){
   const bet=Math.max(0,+document.getElementById('yourBetInput').value||0);
+  sfx.chip();
+  if(pitBossReact(bet)){
+    PZ.phase='barred'; PZ.barredCount=(PZ.barredCount||0)+1;
+    unlock('barred'); sfx.warn(); vib([80,60,80]);
+    pSaveStats(); pRender(); return;
+  }
   pNewHand(bet);
 }
 function pOnStartClick(){
+  audioUnlock();
+  if(PZ.phase==='barred'){
+    PZ.heat=0; PZ.lastBet=null; PZ.shoe=null; PZ.shoeMaxRatio=0; PZ.shoeMaxHeat=0; PZ.phase='guess'; PZ.movedCasino=true;
+    document.getElementById('guessFeedback').textContent=''; pSaveStats(); pRender(); return;
+  }
   if(PZ.phase==='guess'){ pSubmitGuess(); return; }
   if(PZ.phase==='bet'){ pConfirmBet(); return; }
   if(PZ.phase==='resolved'){
@@ -1017,8 +1389,9 @@ function pOnStartClick(){
 }
 function pNewHand(yourBet){
   const cfg=PZ.cfg;
-  PZ.strategy=readStrategy(); PZ.spread=readSpread(); PZ.lastFeedback=''; PZ.outcome='';
+  PZ.strategy=PZ.daily?defaultStrategy():readStrategy(); PZ.spread=readSpread(); PZ.lastFeedback=''; PZ.outcome='';
   PZ.botAOutcome=''; PZ.botBOutcome='';
+  PZ.seen=new Set(); PZ.holeFlipShown=false;
 
   const dUp=pDrawCard(false);
   const you1=pDrawCard(false), a1=pDrawCard(false), b1=pDrawCard(false);
@@ -1041,7 +1414,7 @@ function pNewHand(yourBet){
 function pCheckNatural(){
   const h=PZ.hands[0];
   if(PZ.hands.length===1 && h.cards.length===2 && handInfo(h.cards.map(c=>c.r)).total===21){
-    h.done=true; PZ.lastFeedback='天然21點！'; pResolve(); return true;
+    h.done=true; PZ.lastFeedback='天然21點！'; unlock('blackjack'); pResolve(); return true;
   }
   return false;
 }
@@ -1049,6 +1422,8 @@ function pInsuranceChoice(buy){
   const dealerBJ=handInfo([PZ.dealerUp.r,PZ.holeCard.r]).blackjack;
   const rec = PZ.revealTC>=ILL18_INS_TC;
   PZ.insTotal=(PZ.insTotal||0)+1; if(buy===rec) PZ.insCorrect=(PZ.insCorrect||0)+1;
+  if(buy===rec) addXP(1);
+  if(buy && rec) unlock('ins_right');
   const insBet=PZ.hands[0].bet/2;
   const evBuy=insuranceEVUnit();
   const insLoss = buy===rec ? 0 : Math.max(0, (rec?evBuy:0)-(buy?evBuy:0))*insBet;
@@ -1110,6 +1485,9 @@ function pAction(action){
   const canSur = PZ.hands.length===1 && h.cards.length===2;
   const rec=decide(ranks,PZ.dealerIdx,canDouble,canSplit,PZ.strategy,PZ.revealTC,PZ.cfg.useIndex,canSur,PZ.cfg.surrender);
   PZ.total++; if(action===rec) PZ.correct++;
+  if(action===rec){ PZ.combo=(PZ.combo||0)+1; PZ.bestCombo=Math.max(PZ.bestCombo||0,PZ.combo); addXP(1+(PZ.combo%10===0?3:0)); PZ.comboPop=true;
+    [25,50,100].forEach(n=>{ if(PZ.combo>=n) unlock('combo_'+n); }); }
+  else { if((PZ.combo||0)>=10) sfx.lose(0); PZ.combo=0; }
   const label={hit:'要牌',stand:'停牌',double:'加倍',split:'分牌',surrender:'投降'};
   let lossUnit=0;
   if(action!==rec){
@@ -1131,7 +1509,7 @@ function pAction(action){
     pRender(); return;
   }
   if(action==='double' && canDouble){ h.cards.push(pDrawCard(false)); h.doubled=true; h.bet*=2; h.done=true; }
-  else if(action==='hit'){ h.cards.push(pDrawCard(false)); if(h.splitAces || handInfo(h.cards.map(c=>c.r)).bust) h.done=true; }
+  else if(action==='hit'){ h.cards.push(pDrawCard(false)); const ti=handInfo(h.cards.map(c=>c.r)); if(h.splitAces || ti.bust || ti.total===21) h.done=true; }
   else if(action==='stand'){ h.done=true; }
   else { pRender(); return; }
   pAdvance();
@@ -1188,10 +1566,52 @@ function pResolve(){
   pFinishRecord();
   pRender();
 }
-function pCardHtml(c,hidden){
-  if(hidden) return '<div class="pcard back">🂠</div>';
+// Animation context for one render: which cards are new, and their stagger.
+let ANIM={on:false,minId:0,step:0,base:0,fy:-120};
+function pCardHtml(c,hidden,isHole){
+  let cls='pcard', style='';
+  const fresh = ANIM.on && c && c.id && !(PZ.seen&&PZ.seen.has(c.id));
+  if(fresh){
+    cls+=' deal';
+    style=' style="--delay:'+(ANIM.base+(c.id-ANIM.minId)*ANIM.step).toFixed(2)+'s;--dur:'+Math.max(0.18,ANIM.step*1.3).toFixed(2)+'s;--fy:'+ANIM.fy+'px"';
+  } else if(isHole && !hidden && ANIM.on && !PZ.holeFlipShown){
+    cls+=' flip'; style=' style="--delay:0s"';
+  }
+  if(hidden) return '<div class="'+cls+' back"'+style+'>🂠</div>';
   const red=(c.suit==='♥'||c.suit==='♦');
-  return '<div class="pcard'+(red?' red':'')+'">'+c.r+c.suit+'</div>';
+  return '<div class="'+cls+(red?' red':'')+'"'+style+'>'+c.r+c.suit+'</div>';
+}
+function pVisibleCards(){
+  const out=[PZ.dealerUp,PZ.holeCard].concat(PZ.dealerFinal?PZ.dealerFinal.slice(2):[]);
+  [PZ.botAHands,PZ.hands,PZ.botBHands].forEach(hs=>(hs||[]).forEach(h=>h.cards.forEach(c=>out.push(c))));
+  return out.filter(Boolean);
+}
+function dealerLine(){
+  const tot=cs=>handInfo(cs.map(c=>c.r)).total;
+  if(PZ.phase==='barred') return '（荷官停低手，巡場行埋嚟）';
+  if(PZ.phase==='guess' && PZ.movedCasino){ PZ.movedCasino=false; return '新賭場、新牌靴。呢度冇人識你，低調啲。'; }
+  if(PZ.phase==='guess') return PZ.justShuffled?'啱啱洗完牌，新一鞋開始。落注前估下count。':'新一手。落注前先估下count。';
+  if(PZ.phase==='bet') return '請落注。';
+  if(PZ.phase==='insurance') return 'Insurance？莊家明牌係A，要唔要買保險？';
+  if(PZ.phase==='playing'){
+    const h=pCurHand(); const t=handInfo(h.cards.map(c=>c.r));
+    return (PZ.hands.length>1?'第'+(PZ.curIndex+1)+'手：':'')+'你有'+(t.isSoft?'soft ':'')+t.total+'點，莊家明牌'+PZ.dealerUp.r+'。點做？';
+  }
+  if(PZ.phase==='resolved'){
+    const d=PZ.dealerFinal||[PZ.dealerUp,PZ.holeCard]; const dt=tot(d);
+    const net=PZ.curRec?null:null;
+    let s = (d.length===2&&dt===21)?'莊家Blackjack。':(dt>21?'莊家'+dt+'點，爆牌！':'莊家'+dt+'點。');
+    const last=PZ.log&&PZ.log[0];
+    if(last && last.n===PZ.handNo){ s+= last.net>0?' 你贏'+fmt(last.net)+'，恭喜！':(last.net<0?' 你輸'+fmt(-last.net)+'。':' 平手。'); }
+    return s;
+  }
+  return '';
+}
+function renderDealerBar(){
+  const sayEl=document.getElementById('dealerSay');
+  sayEl.textContent=dealerLine();
+  const left = PZ.shoe ? Math.max(0,(PZ.shoe.total-PZ.shoe.pos)/PZ.shoe.total) : 1;
+  document.getElementById('shoeFill').style.height=(left*100).toFixed(0)+'%';
 }
 function pBotSeatHtml(name,hands,outcome){
   let html='<div class="seatrow"><div class="lbl">'+name+'（電腦）</div>';
@@ -1222,6 +1642,19 @@ function pRender(){
     PZ.phase==='resolved' ? '下一手（先估 count）' :
     PZ.phase==='bet' ? '確認落注，開始' : '核對 count 並落注';
 
+  renderDealerBar();
+  renderFun();
+  document.getElementById('dealerSay').classList.remove('later');
+  if(PZ.phase==='barred'){
+    document.getElementById('pSeat').innerHTML='';
+    document.getElementById('pFeedback').textContent='';
+    document.getElementById('pActions').innerHTML='';
+    document.getElementById('pGuess').style.display='none';
+    document.getElementById('pBetPanel').style.display='none';
+    document.getElementById('pStart').style.display='block';
+    document.getElementById('pStart').textContent='轉去另一間賭場';
+    return;
+  }
   if(PZ.phase==='guess' || PZ.phase==='bet'){
     document.getElementById('pSeat').innerHTML='';
     document.getElementById('pFeedback').textContent='';
@@ -1230,11 +1663,25 @@ function pRender(){
     return;
   }
 
+  // work out which cards are new since last render, to animate them from the shoe
+  const step=+(document.getElementById('pDealSpeed').value||0);
+  const fresh=pVisibleCards().filter(c=>c.id && !(PZ.seen&&PZ.seen.has(c.id)));
+  const flipNow = PZ.holeRevealed && !PZ.holeFlipShown;
+  ANIM={on:step>0, minId:fresh.length?Math.min(...fresh.map(c=>c.id)):0, step, base:flipNow?0.45:0, fy:-120};
+  let animT=0;
+  if(step>0 && (fresh.length||flipNow)){
+    const span=fresh.length?(Math.max(...fresh.map(c=>c.id))-ANIM.minId):0;
+    animT=ANIM.base+(fresh.length?span*step+Math.max(0.18,step*1.3):0.45);
+  }
   let html='';
-  html+='<div class="seatrow"><div class="lbl">莊家</div>'+pCardHtml(PZ.dealerUp,false)+pCardHtml(PZ.holeCard,!PZ.holeRevealed);
+  ANIM.fy=-60;
+  html+='<div class="seatrow"><div class="lbl">莊家</div>'+pCardHtml(PZ.dealerUp,false)+pCardHtml(PZ.holeCard,!PZ.holeRevealed,true)+
+    (PZ.dealerFinal?PZ.dealerFinal.slice(2).map(c=>pCardHtml(c,false)).join(''):'');
   if(PZ.holeRevealed) html+='<div class="hline">'+handInfo((PZ.dealerFinal||[PZ.dealerUp,PZ.holeCard]).map(c=>c.r)).total+'</div>';
   html+='</div>';
+  ANIM.fy=-150;
   if(PZ.botAHands.length) html+=pBotSeatHtml('電腦A',PZ.botAHands,PZ.botAOutcome);
+  ANIM.fy=-240;
   PZ.hands.forEach((h,i)=>{
     const info=handInfo(h.cards.map(c=>c.r));
     const isCur=(i===PZ.curIndex && PZ.phase==='playing');
@@ -1242,10 +1689,25 @@ function pRender(){
       h.cards.map(c=>pCardHtml(c,false)).join('')+
       '<div class="hline'+(isCur?' cur':'')+'">'+info.total+(info.isSoft?' (soft)':'')+(info.bust?' 爆牌':'')+'　下注 '+fmt(h.bet)+'</div></div>';
   });
+  ANIM.fy=-330;
   if(PZ.botBHands.length) html+=pBotSeatHtml('電腦B',PZ.botBHands,PZ.botBOutcome);
   if(PZ.phase==='insurance') html+='<div class="outcome">莊家明牌係 A —— 買唔買保險？</div>';
   if(PZ.outcome) html+='<div class="outcome">你：'+PZ.outcome+'</div>';
-  document.getElementById('pSeat').innerHTML=html;
+  const seatEl=document.getElementById('pSeat');
+  seatEl.innerHTML=html;
+  seatEl.classList.toggle('animating',animT>0);
+  seatEl.style.setProperty('--after',animT.toFixed(2)+'s');
+  const sayEl=document.getElementById('dealerSay');
+  sayEl.style.setProperty('--after',animT.toFixed(2)+'s');
+  sayEl.classList.toggle('later',animT>0);
+  PZ.seen=PZ.seen||new Set(); fresh.forEach(c=>PZ.seen.add(c.id));
+  if(step>0){ fresh.forEach(c=>sfx.card(ANIM.base+(c.id-ANIM.minId)*step)); } else if(fresh.length) sfx.card(0);
+  if(flipNow) sfx.flip(0);
+  if(flipNow) PZ.holeFlipShown=true;
+  if(PZ.pendingResult!=null && PZ.phase==='resolved'){
+    const n=PZ.pendingResult, t=animT+0.1; PZ.pendingResult=null;
+    if(n>0){ sfx.win(t); setTimeout(()=>vib(40),t*1000); } else if(n<0) sfx.lose(t); else sfx.push(t);
+  }
   document.getElementById('pFeedback').textContent=PZ.lastFeedback||'';
   renderMistakes();
 
@@ -1264,11 +1726,18 @@ function pRender(){
     abtns+='<button class="actbtn" data-a="split"'+(canSplit?'':' disabled')+'>分牌 Split</button>';
     if(canSur) abtns+='<button class="actbtn" data-a="surrender">投降 Surrender</button>';
   }
-  document.getElementById('pActions').innerHTML=abtns;
+  const actEl=document.getElementById('pActions');
+  actEl.innerHTML=abtns;
+  clearTimeout(PZ.unlockT);
+  if(animT>0){ actEl.classList.add('locked'); document.getElementById('pStart').classList.add('locked');
+    PZ.unlockT=setTimeout(()=>{ actEl.classList.remove('locked'); document.getElementById('pStart').classList.remove('locked'); }, animT*1000); }
+  else { actEl.classList.remove('locked'); document.getElementById('pStart').classList.remove('locked'); }
   document.querySelectorAll('#pActions [data-a]').forEach(b=>{ b.addEventListener('click',()=>pAction(b.dataset.a)); });
   document.querySelectorAll('#pActions [data-ins]').forEach(b=>{ b.addEventListener('click',()=>pInsuranceChoice(b.dataset.ins==='1')); });
 }
 document.getElementById('pStart').addEventListener('click',pOnStartClick);
+try{ const sp=localStorage.getItem('bj_deal_speed'); if(sp!==null) document.getElementById('pDealSpeed').value=sp; }catch(e){}
+document.getElementById('pDealSpeed').addEventListener('change',e=>{ try{ localStorage.setItem('bj_deal_speed',e.target.value); }catch(err){} });
 document.getElementById('pBankReset').addEventListener('click',()=>{
   if(PZ.phase==='playing'||PZ.phase==='insurance'){ alert('請打完呢手先重設本金'); return; }
   const amt=Math.max(1,+document.getElementById('pBankStart').value||1000);
@@ -1279,7 +1748,8 @@ document.getElementById('pReset').addEventListener('click',()=>{
   if(!confirm('確定要清空所有訓練紀錄？')) return;
   try{ localStorage.removeItem(PZ_STORE_KEY); }catch(e){}
   Object.assign(PZ,{correct:0,total:0,bank:1000,countCorrect:0,countTotal:0,insCorrect:0,insTotal:0,
-    deepCorrect:0,deepTotal:0,shallowCorrect:0,shallowTotal:0,mistakes:{},evLost:0,log:[],handNo:0});
+    deepCorrect:0,deepTotal:0,shallowCorrect:0,shallowTotal:0,mistakes:{},evLost:0,log:[],handNo:0,
+    xp:0,ach:{},combo:0,bestCombo:0,barredCount:0,heat:0,countStreak:0,deepStreak:0});
   PZ.botA.bank=1000; PZ.botB.bank=1000;
   try{ localStorage.removeItem(PZ_REPLAY_KEY); }catch(e){}
   pRender(); renderReplay();
@@ -1394,6 +1864,428 @@ document.getElementById('rorCalc').addEventListener('click',()=>{
     ['變異數', variance.toFixed(3), '']
   ].map(([l,v,cls])=>'<div class="stat"><div class="v '+cls+'">'+v+'</div><div class="l">'+l+'</div></div>').join('');
 });
+
+// ================= Online table (Firebase Realtime Database) =================
+// Engine for the shared table. Host-authoritative: only the host's device holds the shoe.
+const MPE=(()=>{
+  const RK=['A','2','3','4','5','6','7','8','9','10','J','Q','K'], SU=['♠','♥','♦','♣'];
+  const DEF={decks:6,pen:25,h17:false,das:true,surrender:false,bjPay:1.5,startBank:1000,minBet:10};
+  function buildShoe(decks){ const a=[]; for(let d=0;d<decks;d++) for(const s of SU) for(const r of RK) a.push(r+s);
+    for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+  const rk=c=>c.slice(0,-1);
+  const cv=c=>{ const r=rk(c); return r==='A'?11:(['10','J','Q','K'].includes(r)?10:+r); };
+  const hilo=c=>{ const v=cv(c); return v>=10?-1:(v<=6?1:0); };
+  function tot(cards){ let t=0,a=0; for(const c of cards){ t+=cv(c); if(rk(c)==='A') a++; } while(t>21&&a){ t-=10; a--; } return {t,soft:a>0,bust:t>21}; }
+  function emptySeat(){ return {uid:null,bank:0,hands:[],seq:0,present:false}; }
+  function newState(rules){ const R=Object.assign({},DEF,rules||{});
+    return {rules:R,shoe:buildShoe(R.decks),pos:0,rc:0,round:0,phase:'betting',dealer:{cards:[],hide:true},turn:null,
+      msg:'落注後由荷官發牌',seats:[emptySeat(),emptySeat(),emptySeat(),emptySeat()]}; }
+  function draw(S,count=true){ if(S.pos>=S.shoe.length){ S.shoe=buildShoe(S.rules.decks); S.pos=0; S.rc=0; }
+    const c=S.shoe[S.pos++]; if(count) S.rc+=hilo(c); return c; }
+  const committed=st=>st.hands.reduce((a,h)=>a+h.bet,0);
+  function startRound(S,bets){
+    const R=S.rules; S.shuffled=false;
+    if(S.pos>=S.shoe.length*(1-R.pen/100) || S.shoe.length!==R.decks*52){ S.shoe=buildShoe(R.decks); S.pos=0; S.rc=0; S.shuffled=true; }
+    S.dealer={cards:[],hide:true}; S.turn=null; S.msg='';
+    const order=[];
+    S.seats.forEach((st,i)=>{ st.hands=[]; const b=bets[i]||0; if(st.present && b>=R.minBet && b<=st.bank){ st.hands=[{cards:[],bet:b,done:false}]; order.push(i); } });
+    if(!order.length){ S.msg='冇人落有效注碼'; return false; }
+    for(const i of order) S.seats[i].hands[0].cards.push(draw(S));
+    S.dealer.cards.push(draw(S));
+    for(const i of order) S.seats[i].hands[0].cards.push(draw(S));
+    S.dealer.cards.push(draw(S,false));
+    S.round++;
+    if(cv(S.dealer.cards[0])>=10 && tot(S.dealer.cards).t===21){ S.dealer.hide=false; S.rc+=hilo(S.dealer.cards[1]); settle(S); S.msg='莊家Blackjack！'; return true; }
+    for(const i of order){ const h=S.seats[i].hands[0]; if(tot(h.cards).t===21){ h.done=true; h.nat=true; } }
+    S.msg=S.shuffled?'新一鞋牌已洗好':''; advance(S); return true;
+  }
+  const canSplit=(S,st,h)=>h.cards.length===2 && cv(h.cards[0])===cv(h.cards[1]) && st.hands.length<4 && st.bank>=committed(st)+h.bet;
+  const canDouble=(S,st,h)=>h.cards.length===2 && !h.splitAces && (st.hands.length===1||S.rules.das) && st.bank>=committed(st)+h.bet;
+  const canSurrender=(S,st,h)=>!!S.rules.surrender && h.cards.length===2 && st.hands.length===1;
+  function applyAction(S,seat,type){
+    if(S.phase!=='playing'||!S.turn||S.turn.seat!==seat) return false;
+    const st=S.seats[seat], h=st.hands[S.turn.hand]; if(!h||h.done) return false;
+    if(type==='hit'){ h.cards.push(draw(S)); const t=tot(h.cards); if(t.bust||t.t===21) h.done=true; }
+    else if(type==='stand') h.done=true;
+    else if(type==='double'){ if(!canDouble(S,st,h)) return false; h.bet*=2; h.doubled=true; h.cards.push(draw(S)); h.done=true; }
+    else if(type==='split'){ if(!canSplit(S,st,h)) return false; const c2=h.cards.pop(); const nh={cards:[c2],bet:h.bet,done:false,fromSplit:true}; h.fromSplit=true;
+      st.hands.splice(S.turn.hand+1,0,nh); h.cards.push(draw(S)); nh.cards.push(draw(S)); if(rk(c2)==='A'){ h.splitAces=nh.splitAces=true; h.done=nh.done=true; } }
+    else if(type==='surrender'){ if(!canSurrender(S,st,h)) return false; h.surrendered=true; h.done=true; }
+    else return false;
+    advance(S); return true;
+  }
+  function advance(S){
+    for(let i=0;i<4;i++){ const hs=S.seats[i].hands; for(let j=0;j<hs.length;j++){ const h=hs[j]; if(h.done) continue;
+      if(tot(h.cards).t===21){ h.done=true; continue; } S.turn={seat:i,hand:j}; S.phase='playing'; return; } }
+    S.turn=null; dealerPlay(S);
+  }
+  function dealerPlay(S){
+    S.dealer.hide=false; S.rc+=hilo(S.dealer.cards[1]);
+    const live=S.seats.some(st=>st.hands.some(h=>!h.surrendered&&!h.nat&&!tot(h.cards).bust));
+    if(live){ while(true){ const d=tot(S.dealer.cards); if(d.t<17||(d.t===17&&d.soft&&S.rules.h17)) S.dealer.cards.push(draw(S)); else break; } }
+    settle(S);
+  }
+  function settle(S){
+    const d=tot(S.dealer.cards), dbj=S.dealer.cards.length===2&&d.t===21;
+    S.seats.forEach(st=>st.hands.forEach(h=>{ const t=tot(h.cards), nat=h.cards.length===2&&t.t===21&&!h.fromSplit; let x;
+      if(h.surrendered) x=-h.bet/2; else if(dbj) x=nat?0:-h.bet; else if(nat) x=h.bet*S.rules.bjPay; else if(t.bust) x=-h.bet;
+      else if(d.bust||t.t>d.t) x=h.bet; else if(t.t===d.t) x=0; else x=-h.bet; h.delta=x; h.done=true; st.bank+=x; }));
+    S.turn=null; S.phase='done'; S.msg=(S.msg?S.msg+'　':'')+'莊家 '+(d.bust?'爆牌':d.t+'點');
+  }
+  function toBetting(S){ S.phase='betting'; S.turn=null; S.msg='落注後由荷官發牌'; S.seats.forEach(st=>st.hands=[]); S.dealer={cards:[],hide:true}; }
+  // Public projection: never includes the shoe or a hidden hole card.
+  function project(S){
+    const pub={phase:S.phase,round:S.round,msg:S.msg||'',rules:S.rules,turn:S.turn||null,rc:S.rc,
+      left:+((S.shoe.length-S.pos)/52).toFixed(2),shuffled:!!S.shuffled,
+      dealer:{hide:!!S.dealer.hide,cards:S.dealer.hide&&S.dealer.cards.length>1?[S.dealer.cards[0],'?']:S.dealer.cards.slice()},
+      seats:S.seats.map(st=>({uid:st.uid||'',bank:st.bank,seq:st.seq||0,hands:st.hands.map(h=>Object.assign({},h,{cards:h.cards.slice()}))}))};
+    return JSON.parse(JSON.stringify(pub));
+  }
+  const toArr=x=>Array.isArray(x)?x.filter(v=>v!=null):(x&&typeof x==='object'?Object.keys(x).sort((a,b)=>a-b).map(k=>x[k]):[]);
+  function norm(p){
+    p=p||{}; const seatsIn=p.seats||[];
+    return {phase:p.phase||'betting',round:p.round||0,msg:p.msg||'',rules:Object.assign({},DEF,p.rules||{}),turn:p.turn||null,rc:p.rc||0,left:p.left||0,
+      dealer:{hide:!!(p.dealer&&p.dealer.hide),cards:toArr(p.dealer&&p.dealer.cards)},
+      seats:[0,1,2,3].map(i=>{ const s=(Array.isArray(seatsIn)?seatsIn[i]:seatsIn[i])||{}; return {uid:s.uid||null,bank:s.bank||0,seq:s.seq||0,
+        hands:toArr(s.hands).map(h=>Object.assign({},h,{cards:toArr(h.cards)}))}; })};
+  }
+  return {newState,buildShoe,startRound,applyAction,advance,toBetting,project,norm,tot,cv,rk,canSplit,canDouble,canSurrender,emptySeat,toArr,DEF};
+})();
+
+const MP={db:null,m:null,uid:null,code:null,meta:null,pub:null,seats:{},full:null,unsubs:[],writing:Promise.resolve(),
+  seen:new Set(),seenRound:-1,lastPhase:null,feedback:'',hostOD:false,seatOD:-1,busy:false};
+const FB_VER='10.12.2';
+function mpConfig(){
+  if(window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey) return window.FIREBASE_CONFIG;
+  try{ const c=JSON.parse(localStorage.getItem('bj_fb_cfg')||'null'); if(c&&c.apiKey) return c; }catch(e){}
+  return null;
+}
+function mpParseConfig(txt){
+  const m=txt.match(/\{[\s\S]*\}/); if(!m) throw new Error('搵唔到 { … }');
+  let j=m[0].replace(/\/\/.*$/gm,'').replace(/([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:/g,'$1"$2":').replace(/'/g,'"').replace(/,\s*}/g,'}');
+  const c=JSON.parse(j); if(!c.apiKey||!c.databaseURL) throw new Error('要有 apiKey 同 databaseURL'); return c;
+}
+function mpStatus(t){ const e=document.getElementById('mpStatus'); if(e) e.textContent=t; }
+async function mpInit(){
+  if(MP.db) return true;
+  const cfg=mpConfig();
+  if(!cfg){ mpStatus('未設定 Firebase。請喺下面貼上設定，或者喺 firebase-config.js 填好。'); document.getElementById('mpCfgBox').open=true; return false; }
+  mpStatus('連線緊…');
+  try{
+    const base='https://www.gstatic.com/firebasejs/'+FB_VER+'/';
+    const [appM,authM,dbM]=await Promise.all([import(base+'firebase-app.js'),import(base+'firebase-auth.js'),import(base+'firebase-database.js')]);
+    const fb=appM.initializeApp(cfg,'bj-mp'); const auth=authM.getAuth(fb);
+    await authM.signInAnonymously(auth);
+    MP.uid=auth.currentUser.uid; MP.m=dbM; MP.db=dbM.getDatabase(fb);
+    mpStatus('已連線。'); return true;
+  }catch(e){
+    const msg=(e&&(e.code||e.message))||'';
+    mpStatus(/Failed to fetch|import|dynamically/i.test(msg)?'載入唔到連線元件：要有網絡，而且呢個版本（例如Claude預覽）可能唔支援，請用你嘅GitHub版本。':'連線失敗：'+msg);
+    return false;
+  }
+}
+const mref=p=>MP.m.ref(MP.db,'tables/'+MP.code+(p?'/'+p:''));
+function mpRandCode(){ const A='ABCDEFGHJKLMNPQRSTUVWXYZ'; let s=''; for(let i=0;i<4;i++) s+=A[Math.floor(Math.random()*A.length)]; return s; }
+function mpNick(){ const v=(document.getElementById('mpNick').value||'').trim().slice(0,12); try{ localStorage.setItem('bj_mp_nick',v); }catch(e){} return v; }
+function mpSeatDoc(i){ const s=MP.seats; return (Array.isArray(s)?s[i]:(s&&s[i]))||{}; }
+function mpMySeat(){ for(let i=0;i<4;i++){ if(mpSeatDoc(i).uid===MP.uid) return i; } return -1; }
+function mpIsHost(){ return !!(MP.meta && MP.meta.host===MP.uid); }
+
+async function mpCreate(){
+  if(MP.busy) return; MP.busy=true;
+  try{
+    if(!await mpInit()) return;
+    let code=null;
+    for(let k=0;k<6;k++){ const c=mpRandCode(); const s=await MP.m.get(MP.m.ref(MP.db,'tables/'+c+'/meta')); if(!s.exists()){ code=c; break; } }
+    if(!code){ mpStatus('開枱失敗，請再試'); return; }
+    MP.code=code;
+    await MP.m.set(mref('meta'),{host:MP.uid,hostOnline:true,created:MP.m.serverTimestamp()});
+    MP.full=MPE.newState(); await mpWritePub();
+    await mpEnter(code); await mpSit(0);
+  }catch(e){ mpStatus('開枱失敗：'+(e.code||e.message)); }
+  finally{ MP.busy=false; }
+}
+async function mpJoin(){
+  if(MP.busy) return; MP.busy=true;
+  try{
+    const code=(document.getElementById('mpCodeIn').value||'').trim().toUpperCase();
+    if(!/^[A-Z]{4}$/.test(code)){ mpStatus('枱號係4個英文字母'); return; }
+    if(!await mpInit()) return;
+    const s=await MP.m.get(MP.m.ref(MP.db,'tables/'+code+'/meta'));
+    if(!s.exists()){ mpStatus('搵唔到枱號 '+code); return; }
+    await mpEnter(code);
+  }catch(e){ mpStatus('加入失敗：'+(e.code||e.message)); }
+  finally{ MP.busy=false; }
+}
+async function mpEnter(code){
+  MP.code=code; MP.seen=new Set(); MP.seenRound=-1; MP.lastPhase=null; MP.feedback='';
+  try{ localStorage.setItem('bj_mp_last',code); }catch(e){}
+  const {onValue}=MP.m;
+  MP.unsubs.push(onValue(mref('meta'),s=>{ MP.meta=s.val(); if(!MP.meta){ mpClosed(); return; } mpHostCheck(); mpRender(); }));
+  MP.unsubs.push(onValue(mref('state'),s=>{ const v=s.val(); if(!v) return; MP.pub=MPE.norm(v); mpHostCheck(); mpRender(); }));
+  MP.unsubs.push(onValue(mref('seats'),s=>{ MP.seats=s.val()||{}; mpSeatPresence(); mpHostProcess(); mpRender(); }));
+  mpRender();
+}
+function mpClosed(){ mpTeardown(); mpStatus('牌枱已經關閉。'); mpRender(); }
+function mpTeardown(){ MP.unsubs.forEach(u=>{ try{ u(); }catch(e){} }); MP.unsubs=[]; MP.code=null; MP.meta=null; MP.pub=null; MP.seats={}; MP.full=null; MP.hostOD=false; MP.seatOD=-1; }
+
+// ---- host ----
+function mpHostCheck(){
+  if(!mpIsHost()){ MP.full=null; MP.hostOD=false; return; }
+  if(!MP.hostOD){ MP.hostOD=true; MP.m.onDisconnect(mref('meta/hostOnline')).set(false); if(MP.meta.hostOnline===false) MP.m.update(mref('meta'),{hostOnline:true}); }
+  if(!MP.full && MP.pub){
+    const P=MP.pub, f=MPE.newState(P.rules);
+    f.round=P.round; f.seats=P.seats.map(st=>({uid:st.uid,present:!!st.uid,bank:st.bank,hands:[],seq:st.seq}));
+    f.msg=(P.phase==='playing')?'荷官換人，今局作廢，重新落注':'荷官已就位，新一鞋牌';
+    MP.full=f; mpWritePub(); mpHostProcess();
+  }
+}
+function mpWritePub(){
+  if(!MP.full) return MP.writing;
+  const pub=MPE.project(MP.full);
+  MP.writing=MP.writing.then(()=>MP.m.set(mref('state'),pub)).catch(e=>toast('同步失敗',String(e&&e.code||'')));
+  return MP.writing;
+}
+function mpHostDo(fn){ if(!mpIsHost()||!MP.full) return; const r=fn(MP.full); if(r!==false) mpWritePub(); }
+function mpHostProcess(){
+  if(!mpIsHost()||!MP.full) return;
+  const F=MP.full; let changed=false;
+  for(let i=0;i<4;i++){
+    const d=mpSeatDoc(i), uid=d.uid||null, st=F.seats[i];
+    if(st.uid!==uid){
+      const wasTurn=F.turn&&F.turn.seat===i;
+      F.seats[i]=Object.assign(MPE.emptySeat(),{uid,present:!!uid,bank:uid?F.rules.startBank:0,seq:(d.req&&d.req.seq)||0});
+      if(wasTurn){ F.turn=null; MPE.advance(F); }
+      changed=true; continue;
+    }
+    if(uid && d.req && d.req.seq>st.seq){
+      st.seq=d.req.seq; changed=true;
+      if(d.req.type==='rebuy'){ if(F.phase!=='playing' && st.bank<F.rules.minBet) st.bank=F.rules.startBank; }
+      else MPE.applyAction(F,i,d.req.type);
+    }
+  }
+  if(F.phase==='playing' && F.turn && mpSeatDoc(F.turn.seat).online===false){
+    const h=F.seats[F.turn.seat].hands[F.turn.hand]; if(h){ h.done=true; MPE.advance(F); F.msg='有玩家斷線，自動停牌'; changed=true; }
+  }
+  if(changed) mpWritePub();
+}
+function mpTakeover(){ if(!confirm('確定接手做荷官？會換過一鞋新牌。')) return; MP.m.update(mref('meta'),{host:MP.uid,hostOnline:true}); }
+
+// ---- player ----
+async function mpSit(i){
+  if(mpMySeat()>=0){ toast('你已經坐咗'); return; }
+  const nick=mpNick();
+  try{
+    const r=await MP.m.runTransaction(mref('seats/'+i),cur=>{
+      if(cur && cur.uid && cur.uid!==MP.uid) return;
+      return {uid:MP.uid,nick,bet:(MP.pub?MP.pub.rules.minBet:10),betRound:-1,online:true,req:{type:'none',seq:(cur&&cur.req&&cur.req.seq)||0}};
+    });
+    if(!r.committed){ toast('呢個位有人坐'); return; }
+    MP.seatOD=-1; mpSeatPresence();
+  }catch(e){ toast('入座失敗',String(e.code||e.message)); }
+}
+function mpSeatPresence(){
+  const i=mpMySeat(); if(i<0) return;
+  if(MP.seatOD!==i){ MP.seatOD=i; MP.m.onDisconnect(mref('seats/'+i+'/online')).set(false); }
+  if(mpSeatDoc(i).online===false) MP.m.update(mref('seats/'+i),{online:true});
+}
+function mpSend(type){ const i=mpMySeat(); if(i<0) return; const seq=((mpSeatDoc(i).req||{}).seq||0)+1;
+  MP.m.update(mref('seats/'+i),{req:{type,seq}}).catch(e=>toast('送出失敗',String(e.code||''))); }
+function mpReady(){ const i=mpMySeat(); if(i<0) return; const S=MP.pub, st=S.seats[i];
+  const v=Math.floor(+document.getElementById('mpBetIn').value||0);
+  if(v<S.rules.minBet||v>st.bank){ toast('注碼要喺 '+S.rules.minBet+' 至 '+fmt(st.bank)+' 之間'); return; }
+  sfx.chip(); MP.m.update(mref('seats/'+i),{bet:v,betRound:S.round}); }
+async function mpLeave(){
+  if(!MP.code) return;
+  if(mpIsHost()){ if(!confirm('你係荷官，離開會關閉成張牌枱，確定？')) return; try{ await MP.m.remove(mref('')); }catch(e){} }
+  else { const i=mpMySeat(); if(i>=0){ try{ await MP.m.remove(mref('seats/'+i)); }catch(e){} } }
+  mpTeardown(); mpStatus('已離開牌枱。'); mpRender();
+}
+async function mpInvite(){
+  const url=location.href.split('#')[0];
+  const txt='一齊玩21點！枱號：'+MP.code+'\n'+url;
+  try{ if(navigator.share){ await navigator.share({text:txt}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
+  try{ await navigator.clipboard.writeText(txt); toast('已複製邀請'); }catch(e){ toast('枱號：'+MP.code); }
+}
+// Private practice feedback on your own device (same scoring as solo training).
+function mpGrade(type){
+  const S=MP.pub, i=mpMySeat(); if(i<0||!S.turn) return;
+  const st=S.seats[i], h=st.hands[S.turn.hand]; if(!h) return;
+  const ranks=h.cards.map(c=>MPE.rk(c)), up=S.dealer.cards[0]; const upv=MPE.cv(up);
+  const dCol=upv===11?'A':String(upv), dIdx=DEALER_COLS.indexOf(dCol);
+  const cd=MPE.canDouble(S,st,h), cs=MPE.canSplit(S,st,h), cr=MPE.canSurrender(S,st,h);
+  const tc=S.rc/Math.max(0.5,S.left);
+  const rec=decide(ranks,dIdx,cd,cs,readStrategy(),tc,document.getElementById('useIndex').checked,cr,!!S.rules.surrender);
+  const label={hit:'要牌',stand:'停牌',double:'加倍',split:'分牌',surrender:'投降'};
+  PZ.total++;
+  if(type===rec){ PZ.correct++; PZ.combo=(PZ.combo||0)+1; PZ.bestCombo=Math.max(PZ.bestCombo||0,PZ.combo); addXP(1); [25,50,100].forEach(n=>{ if(PZ.combo>=n) unlock('combo_'+n); });
+    MP.feedback='✅ 正確（'+label[type]+'）'; }
+  else {
+    let loss=0; try{ const ev=actionEVs(ranks,dCol,{h17:!!S.rules.h17,das:!!S.rules.das,canDouble:cd,canSplit:cs,canSur:cr}); if(ev[type]!=null&&ev[rec]!=null) loss=Math.max(0,ev[rec]-ev[type]); }catch(e){}
+    logMistake(situationKey(ranks,dCol),label[rec],loss); PZ.evLost+=loss*h.bet; PZ.combo=0;
+    MP.feedback='❌ 建議「'+label[rec]+'」'+(loss>0.0005?'，代價約每100注蝕 '+(loss*100).toFixed(1):'');
+  }
+  pSaveStats();
+}
+function mpAct(type){ if(document.getElementById('mpGrade').checked) mpGrade(type); mpSend(type); }
+
+// ---- rendering ----
+function mpCardEl(c,key,idx){
+  const e=document.createElement('div');
+  const fresh=!MP.seen.has(key); if(fresh) MP.seen.add(key);
+  const speed=+(document.getElementById('pDealSpeed').value||0);
+  e.className='pcard'+(fresh&&speed>0?' deal':'');
+  if(fresh&&speed>0){ e.style.setProperty('--delay',(idx*speed).toFixed(2)+'s'); e.style.setProperty('--dur',Math.max(0.18,speed*1.3).toFixed(2)+'s'); }
+  if(fresh) sfx.card(speed>0?idx*speed:0);
+  if(c==='?'){ e.classList.add('back'); e.textContent='🂠'; return e; }
+  const s=c.slice(-1); if(s==='♥'||s==='♦') e.classList.add('red'); e.textContent=c; return e;
+}
+function mpName(i){ const d=mpSeatDoc(i); return d.nick||('玩家'+(i+1)); }
+function mpRender(){
+  const card=document.getElementById('mpCard'); if(!card) return;
+  const inTable=!!MP.code;
+  document.getElementById('mpSetup').style.display=inTable?'none':'block';
+  document.getElementById('mpTable').style.display=inTable?'block':'none';
+  if(!inTable) return;
+  document.getElementById('mpCodeOut').textContent=MP.code;
+  const S=MP.pub; if(!S){ document.getElementById('mpMsg').textContent='載入緊…'; return; }
+  if(MP.seenRound!==S.round){ MP.seen=new Set(); MP.seenRound=S.round; }
+  const mine=mpMySeat(), host=mpIsHost();
+  // host line
+  const hostSeat=S.seats.findIndex(st=>st.uid&&MP.meta&&st.uid===MP.meta.host);
+  const hl=document.getElementById('mpHostLine'); hl.textContent=host?'你係荷官：負責發牌同開下一局，請保持呢個app開住。':('荷官：'+(hostSeat>=0?mpName(hostSeat):'（未入座）')+(MP.meta&&MP.meta.hostOnline===false?'（已離線）':''));
+  if(!host && mine>=0 && MP.meta && MP.meta.hostOnline===false){ const b=document.createElement('button'); b.className='actbtn'; b.style.marginLeft='8px'; b.textContent='接手做荷官'; b.onclick=mpTakeover; hl.appendChild(b); }
+  // count
+  const cb=document.getElementById('mpCount');
+  if(document.getElementById('mpShowCount').checked){ const left=Math.max(0.5,S.left); cb.style.display='block'; cb.textContent='RC '+S.rc+'　剩約 '+left.toFixed(1)+' 副　TC '+(S.rc/left).toFixed(1); }
+  else cb.style.display='none';
+  // dealer
+  let k=0;
+  const dz=document.getElementById('mpDealer'); dz.innerHTML='';
+  const dl=document.createElement('div'); dl.className='lbl'; dl.textContent='莊家'; dz.appendChild(dl);
+  S.dealer.cards.forEach((c,j)=>dz.appendChild(mpCardEl(c,'d'+j+(c==='?'?'h':''),k++)));
+  if(S.dealer.cards.length){ const t=document.createElement('div'); t.className='hline';
+    t.textContent=S.dealer.hide?'明牌 '+MPE.rk(S.dealer.cards[0]):'總點 '+MPE.tot(S.dealer.cards).t; dz.appendChild(t); }
+  document.getElementById('mpMsg').textContent=S.msg||'';
+  // seats
+  const sz=document.getElementById('mpSeats'); sz.innerHTML='';
+  for(let i=0;i<4;i++){
+    const d=mpSeatDoc(i), st=S.seats[i], box=document.createElement('div');
+    box.className='mpseat'+(S.turn&&S.turn.seat===i?' turn':'')+(i===mine?' mine':'');
+    if(!d.uid){
+      const l=document.createElement('div'); l.className='lbl'; l.textContent='座位 '+(i+1)+'・空位'; box.appendChild(l);
+      if(mine<0){ const b=document.createElement('button'); b.className='actbtn'; b.textContent='坐低'; b.onclick=()=>mpSit(i); box.appendChild(b); }
+      sz.appendChild(box); continue;
+    }
+    const nm=document.createElement('div'); nm.className='mpwho'; nm.textContent=mpName(i)+(i===mine?'（你）':'')+(MP.meta&&d.uid===MP.meta.host?' 🎩':''); box.appendChild(nm);
+    const meta=document.createElement('div'); meta.className='hline';
+    let mt='本金 '+fmt(st.uid===d.uid?st.bank:(S.rules.startBank));
+    if(d.online===false) mt+='・離線';
+    if(S.phase==='betting') mt+=(d.betRound===S.round?'・✓ 已落注 '+fmt(d.bet||0):'・未落注');
+    meta.textContent=mt; box.appendChild(meta);
+    st.hands.forEach((h,j)=>{
+      const row=document.createElement('div'); h.cards.forEach((c,x)=>row.appendChild(mpCardEl(c,'s'+i+'h'+j+'c'+x,k++))); box.appendChild(row);
+      const t=MPE.tot(h.cards); const ln=document.createElement('div');
+      ln.className='hline'+(S.turn&&S.turn.seat===i&&S.turn.hand===j?' cur':'')+(h.delta>0?' pos':(h.delta<0?' neg':''));
+      let s=(st.hands.length>1?'第'+(j+1)+'手・':'')+(h.surrendered?'投降':h.nat?'天然21點':(t.bust?'爆牌 ':'')+(t.soft&&!t.bust?'soft ':'')+t.t)+'　注 '+fmt(h.bet);
+      if(S.phase==='done'&&h.delta!=null) s+='　'+(h.delta>0?'+':'')+fmt(h.delta);
+      ln.textContent=s; box.appendChild(ln);
+    });
+    sz.appendChild(box);
+  }
+  // result sound for me
+  if(S.phase==='done' && MP.lastPhase!=='done' && mine>=0){
+    const net=S.seats[mine].hands.reduce((a,h)=>a+(h.delta||0),0);
+    const t=(k*(+(document.getElementById('pDealSpeed').value||0)))+0.2;
+    if(S.seats[mine].hands.length){ if(net>0) sfx.win(t); else if(net<0) sfx.lose(t); else sfx.push(t); }
+  }
+  MP.lastPhase=S.phase;
+  // actions
+  const ab=document.getElementById('mpActions'); ab.innerHTML='';
+  const fb=document.getElementById('mpFeedback'); fb.textContent=MP.feedback||'';
+  const btn=(label,fn,dis,primary)=>{ const b=document.createElement('button'); b.className='actbtn'; if(primary){ b.style.background='var(--gold)'; b.style.color='var(--ink)'; } b.textContent=label; b.disabled=!!dis; b.onclick=fn; ab.appendChild(b); return b; };
+  if(S.phase==='playing' && S.turn){
+    if(S.turn.seat===mine){
+      const st=S.seats[mine], h=st.hands[S.turn.hand];
+      if(document.getElementById('mpHint').checked){ const hint=document.createElement('div'); hint.className='note'; hint.style.width='100%';
+        const up=S.dealer.cards[0], upv=MPE.cv(up), dCol=upv===11?'A':String(upv);
+        const rec=decide(h.cards.map(c=>MPE.rk(c)),DEALER_COLS.indexOf(dCol),MPE.canDouble(S,st,h),MPE.canSplit(S,st,h),readStrategy(),S.rc/Math.max(0.5,S.left),document.getElementById('useIndex').checked,MPE.canSurrender(S,st,h),!!S.rules.surrender);
+        hint.textContent='提示：'+({hit:'要牌',stand:'停牌',double:'加倍',split:'分牌',surrender:'投降'}[rec]); ab.appendChild(hint); }
+      btn('要牌',()=>mpAct('hit'),false,true); btn('停牌',()=>mpAct('stand'),false,true);
+      btn('加倍',()=>mpAct('double'),!MPE.canDouble(S,st,h)); btn('分牌',()=>mpAct('split'),!MPE.canSplit(S,st,h));
+      if(S.rules.surrender) btn('投降',()=>mpAct('surrender'),!MPE.canSurrender(S,st,h));
+    } else {
+      const w=document.createElement('div'); w.className='note'; w.textContent='等緊 '+mpName(S.turn.seat)+' 決定…'; ab.appendChild(w);
+      if(host) btn('當佢停牌',()=>mpHostDo(F=>{ const h=F.seats[F.turn.seat].hands[F.turn.hand]; if(!h) return false; h.done=true; MPE.advance(F); }));
+    }
+  } else if(S.phase==='betting'){
+    if(mine>=0){
+      const st=S.seats[mine], d=mpSeatDoc(mine);
+      const wrap=document.createElement('div'); wrap.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%';
+      const inp=document.createElement('input'); inp.type='number'; inp.id='mpBetIn'; inp.min=S.rules.minBet; inp.style.maxWidth='120px';
+      const prev=document.getElementById('mpBetIn'); inp.value=(prev&&prev.value)||d.bet||S.rules.minBet;
+      if(document.getElementById('mpShowCount').checked){ const sug=S.rules.minBet*betForTrueCount(S.rc/Math.max(0.5,S.left),readSpread()); const n=document.createElement('span'); n.className='note'; n.style.margin='0'; n.textContent='下注表建議 '+fmt(sug); wrap.appendChild(n); }
+      wrap.prepend(inp); ab.appendChild(wrap);
+      btn(d.betRound===S.round?'改注':'落注',mpReady,false,true);
+      if(st.bank<S.rules.minBet) btn('輸清，重新買入',()=>mpSend('rebuy'));
+    } else { const n=document.createElement('div'); n.className='note'; n.textContent='揀個空位坐低就可以玩。'; ab.appendChild(n); }
+    if(host){
+      const ready=[0,1,2,3].filter(i=>{ const d=mpSeatDoc(i); return d.uid&&d.betRound===S.round; });
+      btn('發牌（'+ready.length+' 人已落注）',()=>mpHostDo(F=>{
+        const bets=[0,1,2,3].map(i=>{ const d=mpSeatDoc(i); return (d.uid&&d.betRound===F.round)?(+d.bet||0):0; });
+        if(!MPE.startRound(F,bets)){ toast('冇有效注碼'); return false; } MP.feedback='';
+      }),!ready.length,true);
+    }
+  } else if(S.phase==='done'){
+    if(host) btn('下一局',()=>mpHostDo(F=>{ MPE.toBetting(F); }),false,true);
+    else { const n=document.createElement('div'); n.className='note'; n.textContent='等荷官開下一局…'; ab.appendChild(n); }
+  }
+  // host rules
+  const rc=document.getElementById('mpRules'); rc.style.display=(host&&S.phase!=='playing')?'block':'none';
+  if(host){ const R=S.rules, a=document.activeElement, setv=(id,v)=>{ const e=document.getElementById(id); if(e!==a) e.value=v; };
+    setv('mrDecks',R.decks); setv('mrPen',R.pen); setv('mrH17',R.h17?'1':'0'); setv('mrDas',R.das?'1':'0'); setv('mrSur',R.surrender?'1':'0');
+    setv('mrBj',String(R.bjPay)); setv('mrBank',R.startBank); setv('mrMin',R.minBet); }
+}
+function mpSaveRules(){
+  const g=id=>document.getElementById(id).value;
+  const R={decks:Math.min(8,Math.max(1,+g('mrDecks')||6)),pen:Math.min(60,Math.max(10,+g('mrPen')||25)),h17:g('mrH17')==='1',das:g('mrDas')==='1',
+    surrender:g('mrSur')==='1',bjPay:+g('mrBj')||1.5,startBank:Math.max(10,+g('mrBank')||1000),minBet:Math.max(1,+g('mrMin')||10)};
+  mpHostDo(F=>{ const deck=F.rules.decks!==R.decks; F.rules=R; if(deck){ F.shoe=MPE.buildShoe(R.decks); F.pos=0; F.rc=0; F.msg='副數已改，重新洗牌'; } });
+  toast('規則已更新');
+}
+function mpSaveCfg(){
+  try{ const c=mpParseConfig(document.getElementById('mpCfgIn').value); localStorage.setItem('bj_fb_cfg',JSON.stringify(c)); mpStatus('設定已儲存，可以開枱。'); document.getElementById('mpCfgBox').open=false; }
+  catch(e){ mpStatus('設定格式唔啱：'+e.message); }
+}
+function setMode(m){
+  document.body.classList.toggle('mp',m==='mp');
+  document.querySelectorAll('.modebar button').forEach(b=>b.classList.toggle('active',b.dataset.m===m));
+  try{ localStorage.setItem('bj_mode',m); }catch(e){}
+  if(m==='mp'){ mpRender(); if(!mpConfig()) mpStatus('未設定 Firebase。請按下面「Firebase 設定」貼上設定。'); }
+  window.scrollTo(0,0);
+}
+
+// ---- startup (after all definitions) ----
+pLoadStats();
+pLoadReplay();
+try{ const hp=localStorage.getItem('bj_heat_on'); if(hp!==null) document.getElementById('pHeatOn').checked=hp==='1';
+     const so=localStorage.getItem('bj_sound_on'); if(so!==null) document.getElementById('pSoundOn').checked=so==='1'; }catch(e){}
+document.getElementById('pHeatOn').addEventListener('change',e=>{ try{ localStorage.setItem('bj_heat_on',e.target.checked?'1':'0'); }catch(err){} pRender(); });
+document.getElementById('pSoundOn').addEventListener('change',e=>{ try{ localStorage.setItem('bj_sound_on',e.target.checked?'1':'0'); }catch(err){} audioUnlock(); });
+renderAch();
+pRender();
+renderReplay();
+document.querySelectorAll('.modebar button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.m)));
+document.getElementById('mpCreateBtn').addEventListener('click',()=>{ audioUnlock(); mpCreate(); });
+document.getElementById('mpJoinBtn').addEventListener('click',()=>{ audioUnlock(); mpJoin(); });
+document.getElementById('mpLeaveBtn').addEventListener('click',mpLeave);
+document.getElementById('mpInviteBtn').addEventListener('click',mpInvite);
+document.getElementById('mpCfgSave').addEventListener('click',mpSaveCfg);
+document.getElementById('mrSave').addEventListener('click',mpSaveRules);
+['mpShowCount','mpHint'].forEach(id=>document.getElementById(id).addEventListener('change',mpRender));
+try{ document.getElementById('mpNick').value=localStorage.getItem('bj_mp_nick')||''; document.getElementById('mpCodeIn').value=localStorage.getItem('bj_mp_last')||'';
+  const q=new URLSearchParams(location.search).get('table'); if(q) document.getElementById('mpCodeIn').value=q.toUpperCase();
+  if(localStorage.getItem('bj_mode')==='mp' || q) setMode('mp'); }catch(e){}
 </script>
 <script>
 if('serviceWorker' in navigator){

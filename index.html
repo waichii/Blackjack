@@ -1974,7 +1974,7 @@ async function mpInit(){
   try{
     const base='https://www.gstatic.com/firebasejs/'+FB_VER+'/';
     const [appM,authM,dbM]=await Promise.all([import(base+'firebase-app.js'),import(base+'firebase-auth.js'),import(base+'firebase-database.js')]);
-    const fb=appM.initializeApp(cfg,'bj-mp'); const auth=authM.getAuth(fb);
+    const fb=appM.getApps().find(a=>a.name==='bj-mp')||appM.initializeApp(cfg,'bj-mp'); const auth=authM.getAuth(fb);
     await authM.signInAnonymously(auth);
     MP.uid=auth.currentUser.uid; MP.m=dbM; MP.db=dbM.getDatabase(fb);
     mpStatus('已連線。'); return true;

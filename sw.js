@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION whenever you upload a new index.html so phones pick up the update.
-const VERSION = 'bj-v4';
+const VERSION = 'bj-v5';
 const FILES = ['./', './index.html', './manifest.webmanifest', './firebase-config.js', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

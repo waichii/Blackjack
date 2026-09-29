@@ -121,6 +121,11 @@ canvas{width:100%;height:180px;display:block;margin-top:14px;border-radius:6px;b
 .ach.on{opacity:1;color:var(--card);border-color:var(--gold)}
 .ach b{display:block;font-size:.75rem;color:inherit}
 .dailybox{border:1px dashed var(--gold);border-radius:10px;padding:10px;margin-bottom:14px;background:rgba(201,162,39,.06)}
+.lbrow{display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--line);font-size:.78rem}
+.lbrow.me{background:rgba(201,162,39,.12);border-radius:6px}
+.lbrow .rk{width:28px;text-align:center}.lbrow .nm{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lbrow .sb{color:var(--muted);font-size:.66rem}.lbrow .vl{color:var(--gold);font-weight:600;white-space:nowrap}
+.actbtn.on{background:var(--gold);color:var(--ink)}
 .dailybox .big{font-size:1.6rem;color:var(--gold);font-weight:700}
 .togglerow{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px;font-size:.75rem;color:var(--muted)}
 .togglerow label{display:flex;align-items:center;gap:6px;cursor:pointer;margin:0}
@@ -181,10 +186,22 @@ body:not(.mp) #mpCard{display:none}
     </div>
     <div class="note" id="mpCount" style="display:none;color:var(--gold)"></div>
     <div class="dealerbar" style="display:block" id="mpDealer"></div>
+    <div class="note" id="mpTimer" style="display:none;text-align:center;font-weight:600;margin:0 0 6px"></div>
     <div class="note" id="mpMsg" style="text-align:center;margin:0 0 8px"></div>
     <div class="mpseats" id="mpSeats"></div>
     <div class="note" id="mpFeedback"></div>
     <div id="mpActions"></div>
+    <div id="mpAuto" class="card" style="display:none;background:rgba(0,0,0,.15);margin-top:10px">
+      <div class="lbl2" style="margin-top:0">自動模式（荷官設定）</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px"><input type="checkbox" id="maOn" style="width:auto">開啟：自動發牌、超時自動停牌、自動開下一局</label>
+      <div class="grid">
+        <div><label>落注倒數（秒）</label><input type="number" id="maBet" min="5" max="120"></div>
+        <div><label>每次決定（秒）</label><input type="number" id="maAct" min="5" max="120"></div>
+        <div><label>結果顯示（秒）</label><input type="number" id="maRes" min="2" max="60"></div>
+      </div>
+      <button class="actbtn" id="maSave" style="margin-top:8px">套用</button>
+      <div class="note">倒數由你部機計，請保持app開住唔好鎖機。所有坐低（在線）嘅人都落咗注會即刻發牌。</div>
+    </div>
     <div id="mpRules" class="card" style="display:none;background:rgba(0,0,0,.15);margin-top:10px">
       <div class="lbl2" style="margin-top:0">枱面規則（荷官設定，下一局生效）</div>
       <div class="grid">
@@ -306,11 +323,24 @@ body:not(.mp) #mpCard{display:none}
     <div class="stat"><div class="v" id="pShallowAcc">—</div><div class="l">淺牌(剩>半鞋)算牌準</div></div>
   </div>
   <div class="dailybox">
-    <div class="row" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <button class="actbtn" id="dailyBtn">📅 開始今日挑戰</button>
-      <span class="note" id="dailyStatus" style="margin:0">每日一條固定牌靴，打20手，按策略、算牌同失誤代價計分，可以同朋友比。</span>
-    </div>
+    <div class="lbl2" style="margin-top:0">📅 每日挑戰</div>
+    <div id="dailyBtns" style="display:flex;flex-direction:column;gap:6px;max-width:420px"></div>
+    <div class="note" id="dailyStatus"></div>
     <div id="dailyResult"></div>
+    <details id="lbWrap" style="margin-top:10px">
+      <summary style="cursor:pointer;color:var(--gold)">🏆 排行榜</summary>
+      <div class="grid" style="max-width:420px;margin-top:8px;align-items:end">
+        <div><label>排行榜暱稱</label><input id="lbNick" maxlength="12" placeholder="例如：Ken"></div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0 0 8px"><input type="checkbox" id="lbJoin" style="width:auto">參加排行榜（公開暱稱同分數）</label>
+      </div>
+      <div id="lbTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0"></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="lbDay" class="rulesel" style="max-width:120px"><option value="0">今日</option><option value="-1">尋日</option><option value="-2">前日</option></select>
+        <button class="actbtn" id="lbRefresh">重新整理</button>
+      </div>
+      <div class="note" id="lbStatus"></div>
+      <div id="lbList"></div>
+    </details>
   </div>
   <div class="togglerow">
     <label><input type="checkbox" id="pHeatOn" checked>巡場監察</label>
@@ -566,9 +596,7 @@ function splitEV(rank,dasAllowed,fns){
   }
   return 2*ev;
 }
-function autoOptimalStrategy(){
-  const h17 = document.getElementById('soft17').value==='H17';
-  const das = document.getElementById('das').value==='yes';
+function computeOptimal(h17,das){
   const rec=buildDealerRec({h17});
   const hardOut={}, softOut={}, pairOut={}, surrGrouped={};
   DEALER_COLS.forEach((dCol,ci)=>{
@@ -604,6 +632,18 @@ function autoOptimalStrategy(){
   // Every mainstream multi-deck S17/H17 hole-card chart says "always split 8s and aces", so we hardcode both.
   pairOut['8']=DEALER_COLS.map(()=>'P');
   pairOut['A']=DEALER_COLS.map(()=>'P');
+  return {hardOut,softOut,pairOut,surrGrouped};
+}
+const OPT_CACHE={};
+function optimalStrategyObj(h17,das){
+  const k=(h17?1:0)+'|'+(das?1:0);
+  if(!OPT_CACHE[k]){ const o=computeOptimal(h17,das); OPT_CACHE[k]={hard:o.hardOut,soft:o.softOut,pair:o.pairOut}; }
+  return OPT_CACHE[k];
+}
+function autoOptimalStrategy(){
+  const h17 = document.getElementById('soft17').value==='H17';
+  const das = document.getElementById('das').value==='yes';
+  const {hardOut,softOut,pairOut,surrGrouped}=computeOptimal(h17,das);
   const toStr=(obj)=>{ const o={}; for(const k in obj) o[k]=obj[k].join(' '); return o; };
   buildTable('panel-hard',HARD_ROWS,r=>r,toStr(hardOut),['H','S','D']);
   buildTable('panel-soft',SOFT_ROWS,r=>'A,'+(r-11),toStr(softOut),['H','S','D']);
@@ -1097,6 +1137,7 @@ const ACHS=[
   ['count_10','心算機器','連續10次count估啱'],['deep_5','深牌殺手','深牌時連續5次count估啱'],
   ['ins_right','識揀保險','count夠高時正確買保險'],['blackjack','Blackjack!','拎到天然21點'],
   ['daily_done','每日一練','完成一次每日挑戰'],['daily_900','挑戰高手','每日挑戰900分或以上'],
+  ['daily_all3','三款全勤','同一日完成三款每日挑戰'],['lb_top1','今日第一','喺任何一款每日挑戰排行榜排第一（最少兩人參加）'],
   ['stealth','低調大師','一鞋之內落過5倍或以上基本注，巡場熱度都未超過40'],['barred','請你離場','第一次被巡場請走']
 ];
 function unlock(id){
@@ -1165,22 +1206,40 @@ function renderFun(){
   const ps=document.getElementById('pitSay'); const pl=pitLine(); ps.textContent=pl; ps.style.display=pl?'block':'none';
   renderDaily();
 }
-// ---- daily challenge ----
-function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+// ---- daily challenge (three variants) ----
+function todayStr(off){ const d=new Date(); if(off) d.setDate(d.getDate()+off); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function hashStr(str){ let h=1779033703^str.length; for(let i=0;i<str.length;i++){ h=Math.imul(h^str.charCodeAt(i),3432918353); h=h<<13|h>>>19; } return h>>>0; }
 function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
-const DAILY_KEY='bj_daily_v1';
-function dailyStore(){ try{ return JSON.parse(localStorage.getItem(DAILY_KEY)||'{}'); }catch(e){ return {}; } }
+const DAILY_VARIANTS={
+  single:{name:'單副牌',desc:'1副・S17・DAS・剩50%洗牌',decks:1,pen:50,h17:false,das:true},
+  std6:{name:'6副牌標準',desc:'6副・S17・DAS・剩25%洗牌',decks:6,pen:25,h17:false,das:true},
+  asia8:{name:'8副牌亞洲式',desc:'8副・H17・DAS・剩40%洗牌',decks:8,pen:40,h17:true,das:true}
+};
+const VARIANT_IDS=['single','std6','asia8'];
+const DAILY_KEY='bj_daily_v2';
+function dailyStore(){
+  try{
+    let st=JSON.parse(localStorage.getItem(DAILY_KEY)||'null');
+    if(!st){ // migrate v1 (single 6-deck challenge) into std6
+      st={}; const old=JSON.parse(localStorage.getItem('bj_daily_v1')||'{}');
+      for(const d in old){ st[d]={std6:old[d]}; }
+    }
+    return st;
+  }catch(e){ return {}; }
+}
 function dailySave(o){ try{ localStorage.setItem(DAILY_KEY,JSON.stringify(o)); }catch(e){} }
-function startDaily(){
+function dailyRec(date,v){ const st=dailyStore(); return (st[date]&&st[date][v])||null; }
+function startDaily(variant){
   if(PZ.phase==='playing'||PZ.phase==='insurance'||PZ.phase==='bet'){ toast('請打完呢手先開始挑戰'); return; }
-  const date=todayStr(), st=dailyStore(), rec=st[date]||{attempts:0};
-  rec.attempts++; st[date]=rec; dailySave(st);
-  PZ.daily={date,id:date+'#'+rec.attempts,attempt:rec.attempts,hand:0,total:20,rng:mulberry32(hashStr('bj-daily-'+date))};
-  PZ.shoe=null; PZ.cfg=pCfg(); PZ.shoe=newShoe(6,COUNT_SYSTEMS.hilo,PZ.daily.rng);
+  if(PZ.daily){ toast('你已經喺挑戰緊'); return; }
+  const date=todayStr(), st=dailyStore(); st[date]=st[date]||{}; const rec=st[date][variant]||{attempts:0};
+  rec.attempts++; st[date][variant]=rec; dailySave(st);
+  const V=DAILY_VARIANTS[variant];
+  PZ.daily={date,variant,id:date+'#'+variant+'#'+rec.attempts,attempt:rec.attempts,hand:0,total:20,rng:mulberry32(hashStr('bj-daily-'+variant+'-'+date))};
+  PZ.shoe=null; PZ.cfg=pCfg(); PZ.shoe=newShoe(V.decks,COUNT_SYSTEMS.hilo,PZ.daily.rng);
   PZ.phase='guess'; PZ.outcome=''; PZ.lastFeedback=''; PZ.justShuffled=false;
   document.getElementById('guessFeedback').textContent='';
-  document.getElementById('dailyResult').innerHTML='';
+  document.getElementById('dailyResult').innerHTML=''; delete document.getElementById('dailyResult').dataset.shown;
   pRender();
 }
 function abortDaily(){ if(!PZ.daily) return; if(PZ.phase==='playing'||PZ.phase==='insurance'){ toast('請打完呢手先放棄'); return; } PZ.daily=null; PZ.shoe=null; PZ.phase='guess'; pRender(); }
@@ -1198,17 +1257,23 @@ function dailyScore(recs){
 function finishDaily(){
   const D=PZ.daily; const recs=PZ.log.filter(R=>R.daily===D.id);
   const r=dailyScore(recs);
-  const st=dailyStore(), rec=st[D.date]||{attempts:D.attempt};
-  if(rec.first==null) rec.first=r.score;
-  rec.best=Math.max(rec.best||0,r.score); st[D.date]=rec; dailySave(st);
-  PZ.lastDaily={date:D.date,attempt:D.attempt,first:rec.first,best:rec.best,...r};
+  const st=dailyStore(); st[D.date]=st[D.date]||{}; const rec=st[D.date][D.variant]||{attempts:D.attempt};
+  const isFirst=rec.first==null;
+  if(isFirst) rec.first=r.score;
+  rec.best=Math.max(rec.best||0,r.score); st[D.date][D.variant]=rec; dailySave(st);
+  PZ.lastDaily={date:D.date,variant:D.variant,attempt:D.attempt,first:rec.first,best:rec.best,...r};
   PZ.daily=null; PZ.shoe=null;
   unlock('daily_done'); if(r.score>=900) unlock('daily_900');
+  if(VARIANT_IDS.every(v=>st[D.date][v]&&st[D.date][v].first!=null)) unlock('daily_all3');
   addXP(20);
   setTimeout(()=>{ sfx.achieve(); },600);
+  if(isFirst) lbQueue({kind:'daily',date:D.date,variant:D.variant,score:r.score,sa:r.sa,ca:r.ca,loss:r.loss});
+  lbQueue({kind:'xp'});
+  lbFlush();
 }
 function dailyShareText(L){
-  return '21點每日挑戰 '+L.date+'\n分數 '+L.score+' / 1000'+(L.attempt>1?'（第'+L.attempt+'次，首次 '+L.first+'）':'')+
+  const V=DAILY_VARIANTS[L.variant]||DAILY_VARIANTS.std6;
+  return '21點每日挑戰 '+L.date+'【'+V.name+'】\n分數 '+L.score+' / 1000'+(L.attempt>1?'（第'+L.attempt+'次，首次 '+L.first+'）':'')+
     '\n策略 '+Math.round(L.sa*100)+'%｜算牌 '+Math.round(L.ca*100)+'%｜失誤代價 '+L.loss.toFixed(2)+' 注';
 }
 async function shareDaily(){
@@ -1217,14 +1282,22 @@ async function shareDaily(){
   try{ await navigator.clipboard.writeText(txt); toast('已複製','貼俾朋友比拼啦'); }catch(e){ toast('複製唔到','請手動揀選文字複製'); }
 }
 function renderDaily(){
-  const btn=document.getElementById('dailyBtn'), stEl=document.getElementById('dailyStatus'), res=document.getElementById('dailyResult');
-  const date=todayStr(), rec=dailyStore()[date];
+  const box=document.getElementById('dailyBtns'), stEl=document.getElementById('dailyStatus'), res=document.getElementById('dailyResult');
+  if(!box) return;
+  const date=todayStr();
+  box.innerHTML='';
   if(PZ.daily){
-    btn.textContent='放棄挑戰'; btn.onclick=abortDaily;
-    stEl.textContent='今日挑戰 '+PZ.daily.date+'：第 '+Math.min(PZ.daily.hand+1,PZ.daily.total)+' / '+PZ.daily.total+' 手。固定規則：6副、S17、DAS、無投降、3:2，按基本策略評分，巡場唔會出現。';
+    const V=DAILY_VARIANTS[PZ.daily.variant];
+    const b=document.createElement('button'); b.className='actbtn'; b.textContent='放棄挑戰'; b.onclick=abortDaily; box.appendChild(b);
+    stEl.textContent='挑戰中【'+V.name+'】'+PZ.daily.date+'：第 '+Math.min(PZ.daily.hand+1,PZ.daily.total)+' / '+PZ.daily.total+' 手。'+V.desc+'，無投降，按該規則嘅最佳策略評分，巡場唔會出現。';
   }else{
-    btn.textContent=rec&&rec.attempts?'📅 再挑戰一次':'📅 開始今日挑戰'; btn.onclick=startDaily;
-    stEl.textContent=rec&&rec.first!=null?'今日首次分數 '+rec.first+'，最佳 '+rec.best+'。朋友同一日會打到同一條牌靴。':'每日一條固定牌靴，打20手，按策略、算牌同失誤代價計分，可以同朋友比。';
+    VARIANT_IDS.forEach(v=>{
+      const V=DAILY_VARIANTS[v], rec=dailyRec(date,v);
+      const b=document.createElement('button'); b.className='actbtn'; b.style.textAlign='left';
+      b.textContent=(rec&&rec.first!=null?'✅ ':'📅 ')+V.name+(rec&&rec.first!=null?'　首次 '+rec.first+'・最佳 '+rec.best:'');
+      b.title=V.desc; b.onclick=()=>startDaily(v); box.appendChild(b);
+    });
+    stEl.textContent='每款每日一條固定牌靴，打20手。排行榜只計每日首次分數。';
   }
   if(PZ.lastDaily && !PZ.daily && !res.dataset.shown){
     const L=PZ.lastDaily;
@@ -1234,7 +1307,88 @@ function renderDaily(){
     document.getElementById('dailyShareBtn').onclick=shareDaily;
     res.dataset.shown='1';
   }
-  if(PZ.daily) res.dataset.shown='';
+}
+
+// ---- leaderboards (Firebase) ----
+const LB={tab:'std6',dayOff:0,loading:false};
+function lbOn(){ const e=document.getElementById('lbJoin'); return !!(e&&e.checked); }
+function lbNick(){ return (document.getElementById('lbNick').value||'').trim().slice(0,12); }
+function lbQueue(item){ try{ const q=JSON.parse(localStorage.getItem('bj_lb_pending')||'[]'); if(item.kind==='xp'){ if(!q.some(x=>x.kind==='xp')) q.push(item); } else q.push(item); localStorage.setItem('bj_lb_pending',JSON.stringify(q.slice(-30))); }catch(e){} }
+async function lbFlush(){
+  if(!lbOn()||!lbNick()||!mpConfig()) return;
+  let q; try{ q=JSON.parse(localStorage.getItem('bj_lb_pending')||'[]'); }catch(e){ q=[]; }
+  if(!q.length) return;
+  if(!await mpInit()) return;
+  const keep=[];
+  for(const it of q){
+    try{
+      if(it.kind==='daily'){
+        const r=MP.m.ref(MP.db,'lb/daily/'+it.date+'/'+it.variant+'/'+MP.uid);
+        const ex=await MP.m.get(r);
+        if(!ex.exists()) await MP.m.set(r,{nick:lbNick(),score:it.score,sa:+it.sa.toFixed(3),ca:+it.ca.toFixed(3),loss:+it.loss.toFixed(3),ts:MP.m.serverTimestamp()});
+      } else if(it.kind==='xp'){
+        await MP.m.set(MP.m.ref(MP.db,'lb/xp/'+MP.uid),{nick:lbNick(),xp:PZ.xp||0,lv:levelOf(PZ.xp||0)+1,ts:MP.m.serverTimestamp()});
+      }
+    }catch(e){ keep.push(it); }
+  }
+  try{ localStorage.setItem('bj_lb_pending',JSON.stringify(keep)); }catch(e){}
+}
+function lbSetStatus(t){ document.getElementById('lbStatus').textContent=t; }
+async function lbLoad(){
+  const list=document.getElementById('lbList');
+  if(!mpConfig()){ lbSetStatus('要先喺「多人牌枱」設定 Firebase 先用到排行榜。'); list.innerHTML=''; return; }
+  if(LB.loading) return; LB.loading=true; lbSetStatus('載入緊…');
+  try{
+    if(!await mpInit()){ lbSetStatus('連唔到排行榜（要有網絡，而且要用你嘅 GitHub 版本）。'); return; }
+    await lbFlush();
+    const date=todayStr(LB.dayOff);
+    let rows=[], unit='分';
+    if(LB.tab==='xp'){
+      const v=(await MP.m.get(MP.m.ref(MP.db,'lb/xp'))).val()||{};
+      rows=Object.entries(v).map(([uid,x])=>({uid,nick:x.nick,val:x.xp||0,sub:'Lv'+(x.lv||1)})); unit='XP';
+    } else if(LB.tab==='all'){
+      const parts=await Promise.all(VARIANT_IDS.map(id=>MP.m.get(MP.m.ref(MP.db,'lb/daily/'+date+'/'+id)).then(s=>s.val()||{})));
+      const agg={};
+      parts.forEach((obj,k)=>{ for(const uid in obj){ const x=obj[uid]; agg[uid]=agg[uid]||{uid,nick:x.nick,val:0,n:0}; agg[uid].val+=x.score||0; agg[uid].n++; agg[uid].nick=x.nick; } });
+      rows=Object.values(agg).map(r=>Object.assign(r,{sub:r.n+'/3 款'}));
+    } else {
+      const v=(await MP.m.get(MP.m.ref(MP.db,'lb/daily/'+date+'/'+LB.tab))).val()||{};
+      rows=Object.entries(v).map(([uid,x])=>({uid,nick:x.nick,val:x.score||0,sub:'策略'+Math.round((x.sa||0)*100)+'% 算牌'+Math.round((x.ca||0)*100)+'%'}));
+    }
+    rows.sort((a,b)=>b.val-a.val);
+    const myIdx=rows.findIndex(r=>r.uid===MP.uid);
+    const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const line=(r,i)=>'<div class="lbrow'+(r.uid===MP.uid?' me':'')+'"><span class="rk">'+(i<3?['🥇','🥈','🥉'][i]:(i+1))+'</span><span class="nm">'+esc(r.nick||'無名')+'</span><span class="sb">'+esc(r.sub||'')+'</span><span class="vl">'+fmt(r.val)+' '+unit+'</span></div>';
+    let html=rows.slice(0,20).map(line).join('');
+    if(myIdx>=20) html+='<div class="note">……</div>'+line(rows[myIdx],myIdx);
+    list.innerHTML=html||'<div class="note">呢個榜仲未有人上傳。</div>';
+    const label=LB.tab==='xp'?'等級榜':((LB.tab==='all'?'綜合':DAILY_VARIANTS[LB.tab].name)+'・'+date);
+    lbSetStatus(label+'：共 '+rows.length+' 人'+(myIdx>=0?'，你排第 '+(myIdx+1):(lbOn()?'':'（你未參加排行榜）')));
+    if(myIdx===0 && rows.length>=2 && LB.tab!=='xp' && LB.tab!=='all' && LB.dayOff===0) unlock('lb_top1');
+  }catch(e){ lbSetStatus('載入失敗：'+(e.code||e.message)); }
+  finally{ LB.loading=false; }
+}
+function lbRenderTabs(){
+  const tabs=[['single','單副'],['std6','6副'],['asia8','8副亞洲'],['all','綜合'],['xp','等級']];
+  const w=document.getElementById('lbTabs'); w.innerHTML='';
+  tabs.forEach(([id,label])=>{ const b=document.createElement('button'); b.className='actbtn'+(LB.tab===id?' on':''); b.textContent=label;
+    b.onclick=()=>{ LB.tab=id; lbRenderTabs(); lbLoad(); }; w.appendChild(b); });
+  const d=document.getElementById('lbDay'); d.style.display=LB.tab==='xp'?'none':'inline-block';
+}
+function lbInitUI(){
+  try{ document.getElementById('lbJoin').checked=localStorage.getItem('bj_lb_join')==='1';
+       document.getElementById('lbNick').value=localStorage.getItem('bj_lb_nick')||localStorage.getItem('bj_mp_nick')||''; }catch(e){}
+  document.getElementById('lbJoin').addEventListener('change',e=>{
+    if(e.target.checked && !lbNick()){ toast('請先打暱稱'); e.target.checked=false; return; }
+    try{ localStorage.setItem('bj_lb_join',e.target.checked?'1':'0'); }catch(err){}
+    if(e.target.checked){ lbQueue({kind:'xp'}); const st=dailyStore(), d=todayStr();
+      VARIANT_IDS.forEach(v=>{ const r=st[d]&&st[d][v]; if(r&&r.first!=null) lbQueue({kind:'daily',date:d,variant:v,score:r.first,sa:0,ca:0,loss:0}); });
+      lbFlush().then(()=>lbLoad()); }
+  });
+  document.getElementById('lbNick').addEventListener('change',e=>{ try{ localStorage.setItem('bj_lb_nick',lbNick()); }catch(err){} if(lbOn()){ lbQueue({kind:'xp'}); lbFlush(); } });
+  document.getElementById('lbDay').addEventListener('change',e=>{ LB.dayOff=+e.target.value; lbLoad(); });
+  document.getElementById('lbRefresh').addEventListener('click',lbLoad);
+  document.getElementById('lbWrap').addEventListener('toggle',e=>{ if(e.target.open){ lbRenderTabs(); lbLoad(); } });
 }
 // ---- sound & haptics (Web Audio, synthesized; no files) ----
 let AC=null;
@@ -1287,8 +1441,9 @@ function pCfg(){
 const _pCfgUI=pCfg;
 pCfg=function(){
   const c=_pCfgUI();
-  if(PZ.daily) Object.assign(c,{decks:6,pen:25,soft17:'S17',das:true,maxHands:4,bjPayout:1.5,surrender:false,csm:false,
-    useIndex:false,weights:COUNT_SYSTEMS.hilo,compAmult:2,compBmult:1});
+  if(PZ.daily){ const V=DAILY_VARIANTS[PZ.daily.variant];
+    Object.assign(c,{decks:V.decks,pen:V.pen,soft17:V.h17?'H17':'S17',das:V.das,maxHands:4,bjPayout:1.5,surrender:false,csm:false,
+      useIndex:false,weights:COUNT_SYSTEMS.hilo,compAmult:2,compBmult:1}); }
   return c;
 };
 function defaultStrategy(){
@@ -1389,7 +1544,7 @@ function pOnStartClick(){
 }
 function pNewHand(yourBet){
   const cfg=PZ.cfg;
-  PZ.strategy=PZ.daily?defaultStrategy():readStrategy(); PZ.spread=readSpread(); PZ.lastFeedback=''; PZ.outcome='';
+  PZ.strategy=PZ.daily?optimalStrategyObj(DAILY_VARIANTS[PZ.daily.variant].h17,DAILY_VARIANTS[PZ.daily.variant].das):readStrategy(); PZ.spread=readSpread(); PZ.lastFeedback=''; PZ.outcome='';
   PZ.botAOutcome=''; PZ.botBOutcome='';
   PZ.seen=new Set(); PZ.holeFlipShown=false;
 
@@ -1878,7 +2033,7 @@ const MPE=(()=>{
   function tot(cards){ let t=0,a=0; for(const c of cards){ t+=cv(c); if(rk(c)==='A') a++; } while(t>21&&a){ t-=10; a--; } return {t,soft:a>0,bust:t>21}; }
   function emptySeat(){ return {uid:null,bank:0,hands:[],seq:0,present:false}; }
   function newState(rules){ const R=Object.assign({},DEF,rules||{});
-    return {rules:R,shoe:buildShoe(R.decks),pos:0,rc:0,round:0,phase:'betting',dealer:{cards:[],hide:true},turn:null,
+    return {rules:R,auto:{on:false,bet:15,act:20,res:5},deadline:null,dkind:'',shoe:buildShoe(R.decks),pos:0,rc:0,round:0,phase:'betting',dealer:{cards:[],hide:true},turn:null,
       msg:'落注後由荷官發牌',seats:[emptySeat(),emptySeat(),emptySeat(),emptySeat()]}; }
   function draw(S,count=true){ if(S.pos>=S.shoe.length){ S.shoe=buildShoe(S.rules.decks); S.pos=0; S.rc=0; }
     const c=S.shoe[S.pos++]; if(count) S.rc+=hilo(c); return c; }
@@ -1937,6 +2092,7 @@ const MPE=(()=>{
   function project(S){
     const pub={phase:S.phase,round:S.round,msg:S.msg||'',rules:S.rules,turn:S.turn||null,rc:S.rc,
       left:+((S.shoe.length-S.pos)/52).toFixed(2),shuffled:!!S.shuffled,
+      auto:S.auto||{on:false,bet:15,act:20,res:5},deadline:S.deadline||0,dkind:S.dkind||'',
       dealer:{hide:!!S.dealer.hide,cards:S.dealer.hide&&S.dealer.cards.length>1?[S.dealer.cards[0],'?']:S.dealer.cards.slice()},
       seats:S.seats.map(st=>({uid:st.uid||'',bank:st.bank,seq:st.seq||0,hands:st.hands.map(h=>Object.assign({},h,{cards:h.cards.slice()}))}))};
     return JSON.parse(JSON.stringify(pub));
@@ -1945,6 +2101,7 @@ const MPE=(()=>{
   function norm(p){
     p=p||{}; const seatsIn=p.seats||[];
     return {phase:p.phase||'betting',round:p.round||0,msg:p.msg||'',rules:Object.assign({},DEF,p.rules||{}),turn:p.turn||null,rc:p.rc||0,left:p.left||0,
+      auto:Object.assign({on:false,bet:15,act:20,res:5},p.auto||{}),deadline:p.deadline||0,dkind:p.dkind||'',
       dealer:{hide:!!(p.dealer&&p.dealer.hide),cards:toArr(p.dealer&&p.dealer.cards)},
       seats:[0,1,2,3].map(i=>{ const s=(Array.isArray(seatsIn)?seatsIn[i]:seatsIn[i])||{}; return {uid:s.uid||null,bank:s.bank||0,seq:s.seq||0,
         hands:toArr(s.hands).map(h=>Object.assign({},h,{cards:toArr(h.cards)}))}; })};
@@ -1977,6 +2134,7 @@ async function mpInit(){
     const fb=appM.getApps().find(a=>a.name==='bj-mp')||appM.initializeApp(cfg,'bj-mp'); const auth=authM.getAuth(fb);
     await authM.signInAnonymously(auth);
     MP.uid=auth.currentUser.uid; MP.m=dbM; MP.db=dbM.getDatabase(fb);
+    try{ dbM.onValue(dbM.ref(MP.db,'.info/serverTimeOffset'),s=>{ MP.offset=+s.val()||0; }); }catch(e){}
     mpStatus('已連線。'); return true;
   }catch(e){
     const msg=(e&&(e.code||e.message))||'';
@@ -2018,7 +2176,7 @@ async function mpJoin(){
   finally{ MP.busy=false; }
 }
 async function mpEnter(code){
-  MP.code=code; MP.seen=new Set(); MP.seenRound=-1; MP.lastPhase=null; MP.feedback='';
+  MP.code=code; MP.seen=new Set(); MP.seenRound=-1; MP.lastPhase=null; MP.feedback=''; mpStartTimers();
   try{ localStorage.setItem('bj_mp_last',code); }catch(e){}
   const {onValue}=MP.m;
   MP.unsubs.push(onValue(mref('meta'),s=>{ MP.meta=s.val(); if(!MP.meta){ mpClosed(); return; } mpHostCheck(); mpRender(); }));
@@ -2027,7 +2185,7 @@ async function mpEnter(code){
   mpRender();
 }
 function mpClosed(){ mpTeardown(); mpStatus('牌枱已經關閉。'); mpRender(); }
-function mpTeardown(){ MP.unsubs.forEach(u=>{ try{ u(); }catch(e){} }); MP.unsubs=[]; MP.code=null; MP.meta=null; MP.pub=null; MP.seats={}; MP.full=null; MP.hostOD=false; MP.seatOD=-1; }
+function mpTeardown(){ mpStopTimers(); MP.unsubs.forEach(u=>{ try{ u(); }catch(e){} }); MP.unsubs=[]; MP.code=null; MP.meta=null; MP.pub=null; MP.seats={}; MP.full=null; MP.hostOD=false; MP.seatOD=-1; }
 
 // ---- host ----
 function mpHostCheck(){
@@ -2035,13 +2193,76 @@ function mpHostCheck(){
   if(!MP.hostOD){ MP.hostOD=true; MP.m.onDisconnect(mref('meta/hostOnline')).set(false); if(MP.meta.hostOnline===false) MP.m.update(mref('meta'),{hostOnline:true}); }
   if(!MP.full && MP.pub){
     const P=MP.pub, f=MPE.newState(P.rules);
-    f.round=P.round; f.seats=P.seats.map(st=>({uid:st.uid,present:!!st.uid,bank:st.bank,hands:[],seq:st.seq}));
+    f.round=P.round; f.auto=Object.assign({},P.auto); f.seats=P.seats.map(st=>({uid:st.uid,present:!!st.uid,bank:st.bank,hands:[],seq:st.seq}));
     f.msg=(P.phase==='playing')?'荷官換人，今局作廢，重新落注':'荷官已就位，新一鞋牌';
     MP.full=f; mpWritePub(); mpHostProcess();
   }
 }
+const mpNow=()=>Date.now()+(MP.offset||0);
+// Host: set/clear the shared countdown whenever the phase or the player to act changes.
+function mpAutoSchedule(F){
+  F.auto=F.auto||{on:false,bet:15,act:20,res:5};
+  if(!F.auto.on){ F.deadline=0; F.dkind=''; F.autoKey=''; return; }
+  let key=F.phase+'|'+F.round;
+  if(F.phase==='playing'&&F.turn){ const h=F.seats[F.turn.seat].hands[F.turn.hand]; key+='|'+F.turn.seat+'.'+F.turn.hand+'.'+(h?h.cards.length:0); }
+  if(key===F.autoKey) return;
+  F.autoKey=key;
+  if(F.phase==='playing'){ F.deadline=mpNow()+F.auto.act*1000; F.dkind='act'; }
+  else if(F.phase==='done'){ F.deadline=mpNow()+F.auto.res*1000; F.dkind='res'; }
+  else { F.deadline=0; F.dkind='bet'; }
+}
+function mpHostDeal(F){
+  const bets=[0,1,2,3].map(i=>{ const d=mpSeatDoc(i); return (d.uid&&d.betRound===F.round)?(+d.bet||0):0; });
+  if(!MPE.startRound(F,bets)){ F.deadline=0; return false; }
+  MP.feedback=''; return true;
+}
+// Host timer: runs twice a second; acts only when auto mode is on.
+function mpHostTick(){
+  if(!mpIsHost()||!MP.full) return;
+  const F=MP.full; if(!F.auto||!F.auto.on) return;
+  const now=mpNow();
+  if(F.phase==='betting'){
+    const seated=[0,1,2,3].filter(i=>{ const d=mpSeatDoc(i); return d.uid && d.online!==false; });
+    const ready=seated.filter(i=>mpSeatDoc(i).betRound===F.round);
+    if(ready.length && ready.length===seated.length){ if(mpHostDeal(F)) mpWritePub(); else { F.msg='冇有效注碼'; mpWritePub(); } return; }
+    if(ready.length && !F.deadline){ F.deadline=now+F.auto.bet*1000; F.dkind='bet'; mpWritePub(); return; }
+    if(!ready.length && F.deadline){ F.deadline=0; mpWritePub(); return; }
+    if(F.deadline && now>=F.deadline){ if(!mpHostDeal(F)) F.msg='冇有效注碼'; mpWritePub(); }
+  } else if(F.phase==='playing' && F.turn && F.deadline && now>=F.deadline){
+    const h=F.seats[F.turn.seat].hands[F.turn.hand];
+    if(h){ h.done=true; F.msg='超時，自動停牌'; MPE.advance(F); mpWritePub(); }
+  } else if(F.phase==='done' && F.deadline && now>=F.deadline){
+    MPE.toBetting(F); mpWritePub();
+  }
+}
+// Everyone: redraw only the countdown line.
+function mpTimerTick(){
+  const el=document.getElementById('mpTimer'); if(!el) return;
+  const S=MP.pub;
+  if(!MP.code||!S||!S.auto||!S.auto.on){ el.style.display='none'; return; }
+  el.style.display='block';
+  const left=S.deadline?Math.max(0,Math.ceil((S.deadline-mpNow())/1000)):null;
+  const mine=mpMySeat();
+  let t='⏱ 自動模式';
+  if(S.phase==='betting') t+= left!=null?'：'+left+' 秒後發牌（全部人落咗注會即刻發）':'：等第一個人落注就開始倒數';
+  else if(S.phase==='playing'&&S.turn) t+= (S.turn.seat===mine?'：輪到你，剩 ':'：'+mpName(S.turn.seat)+' 剩 ')+(left!=null?left:'–')+' 秒';
+  else if(S.phase==='done') t+= left!=null?'：'+left+' 秒後下一局':'';
+  el.textContent=t;
+  const urgent=S.phase==='playing'&&S.turn&&S.turn.seat===mine&&left!=null&&left<=5;
+  el.style.color=urgent?'#d0705f':'var(--gold)';
+  if(urgent && MP.lastBeep!==left && left>0){ MP.lastBeep=left; tone(880,0.08,0,'sine',0.06); }
+}
+function mpStartTimers(){ if(MP.timer) return; MP.timer=setInterval(()=>{ try{ mpHostTick(); mpTimerTick(); }catch(e){} },500); }
+function mpStopTimers(){ if(MP.timer){ clearInterval(MP.timer); MP.timer=null; } }
+function mpSaveAuto(){
+  const g=id=>document.getElementById(id);
+  const A={on:g('maOn').checked,bet:Math.min(120,Math.max(5,+g('maBet').value||15)),act:Math.min(120,Math.max(5,+g('maAct').value||20)),res:Math.min(60,Math.max(2,+g('maRes').value||5))};
+  mpHostDo(F=>{ F.auto=A; F.autoKey=''; });
+  toast(A.on?'自動模式已開啟':'自動模式已關閉');
+}
 function mpWritePub(){
   if(!MP.full) return MP.writing;
+  mpAutoSchedule(MP.full);
   const pub=MPE.project(MP.full);
   MP.writing=MP.writing.then(()=>MP.m.set(mref('state'),pub)).catch(e=>toast('同步失敗',String(e&&e.code||'')));
   return MP.writing;
@@ -2231,16 +2452,18 @@ function mpRender(){
     } else { const n=document.createElement('div'); n.className='note'; n.textContent='揀個空位坐低就可以玩。'; ab.appendChild(n); }
     if(host){
       const ready=[0,1,2,3].filter(i=>{ const d=mpSeatDoc(i); return d.uid&&d.betRound===S.round; });
-      btn('發牌（'+ready.length+' 人已落注）',()=>mpHostDo(F=>{
-        const bets=[0,1,2,3].map(i=>{ const d=mpSeatDoc(i); return (d.uid&&d.betRound===F.round)?(+d.bet||0):0; });
-        if(!MPE.startRound(F,bets)){ toast('冇有效注碼'); return false; } MP.feedback='';
-      }),!ready.length,true);
+      btn('發牌（'+ready.length+' 人已落注）',()=>mpHostDo(F=>{ if(!mpHostDeal(F)){ toast('冇有效注碼'); return false; } }),!ready.length,true);
     }
   } else if(S.phase==='done'){
     if(host) btn('下一局',()=>mpHostDo(F=>{ MPE.toBetting(F); }),false,true);
     else { const n=document.createElement('div'); n.className='note'; n.textContent='等荷官開下一局…'; ab.appendChild(n); }
   }
   // host rules
+  const ac=document.getElementById('mpAuto'); ac.style.display=host?'block':'none';
+  if(host){ const a=document.activeElement, A=S.auto;
+    if(a!==document.getElementById('maOn')) document.getElementById('maOn').checked=!!A.on;
+    [['maBet',A.bet],['maAct',A.act],['maRes',A.res]].forEach(([id,v])=>{ const e=document.getElementById(id); if(e!==a) e.value=v; }); }
+  mpTimerTick();
   const rc=document.getElementById('mpRules'); rc.style.display=(host&&S.phase!=='playing')?'block':'none';
   if(host){ const R=S.rules, a=document.activeElement, setv=(id,v)=>{ const e=document.getElementById(id); if(e!==a) e.value=v; };
     setv('mrDecks',R.decks); setv('mrPen',R.pen); setv('mrH17',R.h17?'1':'0'); setv('mrDas',R.das?'1':'0'); setv('mrSur',R.surrender?'1':'0');
@@ -2282,6 +2505,8 @@ document.getElementById('mpLeaveBtn').addEventListener('click',mpLeave);
 document.getElementById('mpInviteBtn').addEventListener('click',mpInvite);
 document.getElementById('mpCfgSave').addEventListener('click',mpSaveCfg);
 document.getElementById('mrSave').addEventListener('click',mpSaveRules);
+document.getElementById('maSave').addEventListener('click',mpSaveAuto);
+lbInitUI(); renderDaily(); setTimeout(()=>{ lbFlush(); },1500);
 ['mpShowCount','mpHint'].forEach(id=>document.getElementById(id).addEventListener('change',mpRender));
 try{ document.getElementById('mpNick').value=localStorage.getItem('bj_mp_nick')||''; document.getElementById('mpCodeIn').value=localStorage.getItem('bj_mp_last')||'';
   const q=new URLSearchParams(location.search).get('table'); if(q) document.getElementById('mpCodeIn').value=q.toUpperCase();

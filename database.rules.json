@@ -22,6 +22,28 @@
         },
         "$other": { ".validate": false }
       }
+    },
+    "lb": {
+      "daily": {
+        "$date": {
+          ".validate": "$date.matches(/^20[0-9][0-9]-[01][0-9]-[0-3][0-9]$/)",
+          "$variant": {
+            ".read": "auth != null",
+            ".validate": "$variant === 'single' || $variant === 'std6' || $variant === 'asia8'",
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid && !data.exists()",
+              ".validate": "newData.hasChildren(['nick','score','ts']) && newData.child('score').isNumber() && newData.child('score').val() >= 0 && newData.child('score').val() <= 1000 && newData.child('nick').isString() && newData.child('nick').val().length >= 1 && newData.child('nick').val().length <= 12"
+            }
+          }
+        }
+      },
+      "xp": {
+        ".read": "auth != null",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['nick','xp']) && newData.child('xp').isNumber() && newData.child('xp').val() >= 0 && newData.child('xp').val() <= 1000000 && newData.child('nick').isString() && newData.child('nick').val().length >= 1 && newData.child('nick').val().length <= 12"
+        }
+      }
     }
   }
 }
